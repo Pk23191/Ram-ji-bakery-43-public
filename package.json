@@ -1,0 +1,17 @@
+{
+  "name": "ramji-bakery",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "predev": "node scripts/predev-clean.js",
+    "dev": "node scripts/dev.js",
+    "client:dev": "cd client && npm run dev",
+    "server:dev": "cd server && npm run dev",
+    "client:build": "npm --prefix client run build",
+    "server:start": "npm --prefix server run start",
+    "install:all": "npm install && npm --prefix client install && npm --prefix server install"
+  },
+  "devDependencies": {
+    "kill-port": "^2.0.1"
+  }
+}

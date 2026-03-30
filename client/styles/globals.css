@@ -1,0 +1,50 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-cream font-body text-mocha antialiased;
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.88), transparent 30%),
+    radial-gradient(circle at 80% 0%, rgba(243, 201, 196, 0.22), transparent 25%),
+    linear-gradient(180deg, #fff7ef 0%, #f9efe2 42%, #fffdf8 100%);
+}
+
+a {
+  @apply transition-colors duration-300;
+}
+
+::selection {
+  background: #bf7b44;
+  color: #fff7ef;
+}
+
+.glass-panel {
+  @apply rounded-[28px] border border-white/60 bg-white/70 backdrop-blur-xl shadow-soft;
+}
+
+.section-shell {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}
+
+.section-title {
+  @apply font-heading text-3xl text-cocoa sm:text-4xl;
+}
+
+.soft-input {
+  @apply w-full rounded-2xl border border-[#ead8c5] bg-white/90 px-4 py-3 text-sm text-mocha outline-none transition focus:border-caramel focus:ring-2 focus:ring-caramel/15;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-full bg-cocoa px-5 py-3 text-sm font-semibold text-cream transition hover:-translate-y-0.5 hover:bg-mocha;
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-full border border-caramel/40 bg-white/80 px-5 py-3 text-sm font-semibold text-cocoa transition hover:-translate-y-0.5 hover:border-caramel hover:bg-latte/60;
+}
