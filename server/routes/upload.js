@@ -1,36 +1,26 @@
 const express = require("express");
-const { memoryUpload } = require("../utils/upload");
-const {
-  uploadSingleImage,
-  uploadImages,
-  handleUploadError
-} = require("../controllers/uploadController");
-
 const router = express.Router();
+const multer = require("multer");
+const path = require("path");
 
-const uploadFields = memoryUpload.fields([
-  { name: "image", maxCount: 4 },
-  { name: "images", maxCount: 4 }
-]);
+// storage config
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
 
-router.post("/", (req, res, next) => {
-  uploadFields(req, res, (error) => {
-    if (error) {
-      return handleUploadError(error, req, res, next);
-    }
+const upload = multer({ storage });
 
-    return uploadSingleImage(req, res, next);
+// route
+router.post("/upload", upload.single("image"), (req, res) => {
+  res.json({
+    imageUrl: `http://localhost:5000/uploads/${req.file.filename}`,
   });
 });
 
-router.post("/multiple", (req, res, next) => {
-  uploadFields(req, res, (error) => {
-    if (error) {
-      return handleUploadError(error, req, res, next);
-    }
-
-    return uploadImages(req, res, next);
-  });
-});
-
+// 🔥 IMPORTANT (ye line hi sabse important hai)
 module.exports = router;

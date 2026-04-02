@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1",
+    "name": "cake",
+    "category": "cake",
+    "price": 199,
+    "image": "uploads/test.jpg",
+    "rating": 4.7,
+    "description": "Delicious cake"
+  },
+  {
+    "id": "2",
+    "name": "double side tap",
+    "category": "party",
+    "price": 20,
+    "image": "uploads/test.jpg",
+    "rating": 4.7,
+    "description": "Party item"
+  },
+  {
+    "id": "3",
+    "name": "birthday queen cap",
+    "category": "hats",
+    "price": 120,
+    "image": "uploads/test.jpg",
+    "rating": 4.7,
+    "description": "Birthday cap"
+  }
+]
