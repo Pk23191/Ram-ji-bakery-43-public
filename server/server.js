@@ -23,6 +23,8 @@ const { readJson, writeJson } = require("./utils/fileStore");
 const app = express();
 let server;
 
+app.set("trust proxy", 1);
+
 // Core middleware for API requests and media uploads.
 app.use(
   cors({

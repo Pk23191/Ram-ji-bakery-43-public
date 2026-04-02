@@ -17,6 +17,59 @@ function issueAdminToken(admin) {
   );
 }
 
+function getSuperAdminConfig() {
+  return {
+    email: normalizeEmail(process.env.SUPERADMIN_EMAIL || ""),
+    passwordHash: String(process.env.SUPERADMIN_PASSWORD_HASH || "").trim(),
+    passwordPlain: String(process.env.SUPERADMIN_PASSWORD || "").trim()
+  };
+}
+
+async function superLogin(req, res) {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const password = String(req.body.password || "");
+    const { email: superEmail, passwordHash, passwordPlain } = getSuperAdminConfig();
+
+    if (!superEmail || (!passwordHash && !passwordPlain)) {
+      return res.status(500).json({ message: "Superadmin credentials not configured" });
+    }
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    if (email !== superEmail) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    let match = false;
+    if (passwordHash) {
+      match = await bcrypt.compare(password, passwordHash);
+    } else if (passwordPlain) {
+      match = passwordPlain === password;
+    }
+
+    if (!match) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const admin = {
+      id: "superadmin",
+      email: superEmail,
+      role: "superadmin"
+    };
+
+    return res.json({
+      token: issueAdminToken(admin),
+      admin
+    });
+  } catch (error) {
+    console.error("Superadmin login failed:", error);
+    return res.status(500).json({ message: "Unable to login" });
+  }
+}
+
 async function login(req, res) {
   try {
     const email = normalizeEmail(req.body.email);
@@ -129,6 +182,7 @@ async function deleteAdmin(req, res) {
 }
 
 module.exports = {
+  superLogin,
   login,
   getAdmins,
   createAdmin,

@@ -2,6 +2,23 @@ const path = require("path");
 const { readJson, writeJson } = require("../utils/fileStore");
 
 const PRODUCTS_FILE = path.join(__dirname, "..", "data", "products.json");
+const CACHE_TTL_MS = 30 * 1000;
+let cachedProducts = null;
+let cachedAt = 0;
+
+function setProductCache(products) {
+  cachedProducts = Array.isArray(products) ? products : null;
+  cachedAt = Date.now();
+}
+
+function getCachedProducts() {
+  if (!cachedProducts) return null;
+  if (Date.now() - cachedAt > CACHE_TTL_MS) {
+    cachedProducts = null;
+    return null;
+  }
+  return cachedProducts;
+}
 
 function normalizeCategory(category = "") {
   const value = String(category).trim().toLowerCase();
@@ -127,7 +144,11 @@ function normalizeProductPayload(body = {}, options = {}) {
 async function getProducts(req, res) {
   try {
     const category = normalizeCategory(req.query.category);
-    const products = await readJson(PRODUCTS_FILE, []);
+    const cached = getCachedProducts();
+    const products = cached || (await readJson(PRODUCTS_FILE, []));
+    if (!cached) {
+      setProductCache(products);
+    }
     const filtered = category
       ? products.filter((product) => getCategoryAliases(category).includes(product.category))
       : products;
@@ -179,6 +200,7 @@ async function createProduct(req, res) {
     };
     products.unshift(product);
     await writeJson(PRODUCTS_FILE, products);
+    setProductCache(products);
 
     return res.status(201).json(product);
   } catch (error) {
@@ -220,6 +242,7 @@ async function updateProduct(req, res) {
     };
     products[index] = updatedProduct;
     await writeJson(PRODUCTS_FILE, products);
+    setProductCache(products);
 
     return res.json(updatedProduct);
   } catch (error) {
@@ -240,6 +263,7 @@ async function deleteProduct(req, res) {
 
     products.splice(index, 1);
     await writeJson(PRODUCTS_FILE, products);
+    setProductCache(products);
 
     return res.json({ message: "Product deleted successfully" });
   } catch (error) {

@@ -1,21 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
-import Seo from "../components/Seo";
-import SectionHeader from "../components/SectionHeader";
-import api from "../utils/api";
+import Seo from "../../components/Seo";
+import SectionHeader from "../../components/SectionHeader";
+import api from "../../utils/api";
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordTokenPage() {
   const router = useRouter();
   const { token } = router.query;
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!token) {
-      return;
-    }
-  }, [token]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();

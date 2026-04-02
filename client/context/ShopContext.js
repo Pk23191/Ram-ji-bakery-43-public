@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { defaultCustomization, normalizeProduct } from "../data/site";
 import api, { setAdminAuthToken } from "../utils/api";
@@ -217,38 +217,60 @@ export function ShopProvider({ children }) {
     );
   };
 
-  const recommendedProducts = catalogProducts.filter((product) =>
-    userPreferences.some(
-      (entry) =>
-        entry.toLowerCase().includes(product.category.toLowerCase().split(" ")[0]) ||
-        product.flavors?.some((flavor) => entry.includes(flavor.toLowerCase()))
-    )
+  const recommendedProducts = useMemo(
+    () =>
+      catalogProducts.filter((product) =>
+        userPreferences.some(
+          (entry) =>
+            entry.toLowerCase().includes(product.category.toLowerCase().split(" ")[0]) ||
+            product.flavors?.some((flavor) => entry.includes(flavor.toLowerCase()))
+        )
+      ),
+    [catalogProducts, userPreferences]
+  );
+  const cartTotal = useMemo(() => calculateCartTotal(cart), [cart]);
+  const recommendedList = useMemo(
+    () => (recommendedProducts.length ? recommendedProducts : catalogProducts.slice(0, 3)),
+    [recommendedProducts, catalogProducts]
+  );
+
+  const value = useMemo(
+    () => ({
+      cart,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      cartTotal,
+      orders,
+      placeOrder,
+      updateOrderInState,
+      customCake,
+      setCustomCake,
+      recommendedProducts: recommendedList,
+      adminToken,
+      setAdminToken,
+      adminUser,
+      setAdminUser,
+      customerSession,
+      setCustomerSession,
+      coupon,
+      setCoupon
+    }),
+    [
+      cart,
+      cartTotal,
+      orders,
+      customCake,
+      recommendedList,
+      adminToken,
+      adminUser,
+      customerSession,
+      coupon
+    ]
   );
 
   return (
-    <ShopContext.Provider
-      value={{
-        cart,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        cartTotal: calculateCartTotal(cart),
-        orders,
-        placeOrder,
-        updateOrderInState,
-        customCake,
-        setCustomCake,
-        recommendedProducts: recommendedProducts.length ? recommendedProducts : catalogProducts.slice(0, 3),
-        adminToken,
-        setAdminToken,
-        adminUser,
-        setAdminUser,
-        customerSession,
-        setCustomerSession,
-        coupon,
-        setCoupon
-      }}
-    >
+    <ShopContext.Provider value={value}>
       {children}
     </ShopContext.Provider>
   );

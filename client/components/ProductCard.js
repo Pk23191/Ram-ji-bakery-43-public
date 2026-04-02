@@ -13,15 +13,15 @@ export default function ProductCard({ product }) {
   return (
     <motion.div
       whileHover={{ y: -6 }}
-      className="group overflow-hidden rounded-[28px] border border-white/60 bg-white/80 shadow-soft"
+      className="product-card group overflow-hidden rounded-[28px] border border-white/60 bg-white/80 shadow-soft"
     >
-      <div className="relative h-64 overflow-hidden">
+      <div className="product-card__media relative overflow-hidden">
         <ProductImage
           src={product.images?.[0] || product.image}
           alt={product.name}
           fill
           loading="lazy"
-          className="object-cover transition duration-500 group-hover:scale-[1.03]"
+          className="product-card__image"
         />
         <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-caramel">
           {product.badge}

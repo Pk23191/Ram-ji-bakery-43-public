@@ -8,6 +8,7 @@ import { useShop } from "../context/ShopContext";
 import api from "../utils/api";
 import { calculatePricingSummary } from "../utils/pricing";
 import { formatCurrency } from "../utils/helpers";
+import { sendWhatsApp } from "../utils/whatsapp";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -100,17 +101,25 @@ export default function CheckoutPage() {
       const placedOrder = placeOrder(data.order);
       const confirmationId = data.order?.orderId || placedOrder.id;
 
+      const enrichedOrder = {
+        ...data.order,
+        customer: trimmedName,
+        customerEmail: customerSession?.email || "",
+        phone: trimmedPhone,
+        address: trimmedAddress,
+        total: pricing.total,
+        items: orderPayload.items
+      };
+
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("rb_last_order", JSON.stringify(enrichedOrder));
+      }
+
       toast.success("Order placed successfully");
       await router.push(`/order-confirmation?id=${confirmationId}`);
 
-      if (data.whatsappUrl) {
-        window.setTimeout(() => {
-          const popup = window.open(data.whatsappUrl, "_blank", "noopener,noreferrer");
-          if (!popup) {
-            toast("WhatsApp link is ready. Please allow popups if it did not open.");
-          }
-        }, 500);
-      }
+      toast("Redirecting to WhatsApp...");
+      sendWhatsApp(enrichedOrder);
     } catch (error) {
       const message = error.response?.data?.message || "Order failed. Please try again.";
       toast.error(message);

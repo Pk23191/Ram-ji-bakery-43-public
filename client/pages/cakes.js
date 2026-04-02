@@ -29,13 +29,13 @@ export default function CakesPage() {
           </div>
         ) : null}
 
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-10 grid gap-6 grid-cols-2 lg:grid-cols-4">
           {isLoading ? (
             <div className="glass-panel p-6 text-sm text-mocha/70">Loading cakes...</div>
           ) : products.length ? (
             products.map((product) => <ProductCard key={product._id} product={product} />)
           ) : (
-            <div className="glass-panel sm:col-span-2 xl:col-span-3 p-8 text-center text-sm text-mocha/70">
+            <div className="glass-panel col-span-2 lg:col-span-4 p-8 text-center text-sm text-mocha/70">
               No cakes are available right now. Please check back soon.
             </div>
           )}

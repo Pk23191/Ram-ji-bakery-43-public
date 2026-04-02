@@ -13,8 +13,9 @@ export default function ForgotPasswordPage() {
 
     try {
       setIsSubmitting(true);
-      await api.post("/users/password/forgot", { email });
-      toast.success("Password reset email sent");
+      const { data } = await api.post("/auth/forgot-password", { email });
+      console.log("Reset link:", data?.resetLink);
+      toast.success("Password reset link generated");
     } catch (error) {
       toast.error(error.response?.data?.message || "Unable to send reset email");
     } finally {
@@ -36,6 +37,7 @@ export default function ForgotPasswordPage() {
             className="soft-input"
             type="email"
             placeholder="Email address"
+            autoComplete="off"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />

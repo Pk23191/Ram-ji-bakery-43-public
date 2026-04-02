@@ -68,7 +68,7 @@ export default function MenuPage() {
           </div>
         ) : null}
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-10 grid gap-6 grid-cols-2 lg:grid-cols-4">
           {isLoading ? (
             <div className="glass-panel p-6 text-sm text-mocha/70">Loading products...</div>
           ) : (

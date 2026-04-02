@@ -1,10 +1,39 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import Seo from "../../components/Seo";
+import { sendWhatsApp } from "../../utils/whatsapp";
 
 export default function OrderConfirmationPage() {
   const router = useRouter();
   const { id } = router.query;
+  const [lastOrder, setLastOrder] = useState(null);
+  const [isSending, setIsSending] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = sessionStorage.getItem("rb_last_order");
+    if (raw) {
+      try {
+        setLastOrder(JSON.parse(raw));
+      } catch (error) {
+        // ignore invalid cache
+      }
+    }
+  }, []);
+
+  const handleSendWhatsApp = () => {
+    if (!lastOrder) {
+      toast.error("Order details missing. Please place a new order.");
+      return;
+    }
+
+    setIsSending(true);
+    toast("Redirecting to WhatsApp...");
+    sendWhatsApp(lastOrder);
+    setTimeout(() => setIsSending(false), 1200);
+  };
 
   return (
     <>
@@ -25,6 +54,14 @@ export default function OrderConfirmationPage() {
             <Link href="/track-order" className="btn-primary">
               Track Order
             </Link>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handleSendWhatsApp}
+              disabled={!lastOrder || isSending}
+            >
+              {isSending ? "Sending..." : "Send Order on WhatsApp"}
+            </button>
             <Link href="/menu" className="btn-secondary">
               Continue Shopping
             </Link>

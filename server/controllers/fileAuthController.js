@@ -1,4 +1,5 @@
 const path = require("path");
+const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { readJson, writeJson } = require("../utils/fileStore");
@@ -165,9 +166,91 @@ async function getProfile(req, res) {
   }
 }
 
+async function forgotPassword(req, res) {
+  try {
+    const email = normalizeEmail(req.body.email);
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const users = await readJson(USERS_FILE, []);
+    const userIndex = users.findIndex((item) => item.email === email);
+    if (userIndex === -1) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpires = Date.now() + 15 * 60 * 1000;
+
+    users[userIndex] = {
+      ...users[userIndex],
+      resetToken,
+      resetTokenExpires
+    };
+
+    await writeJson(USERS_FILE, users);
+
+    const resetLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password/${resetToken}`;
+    console.log("Password reset token generated:", { email, resetToken, resetTokenExpires });
+
+    return res.json({
+      message: "Password reset link generated",
+      resetLink
+    });
+  } catch (error) {
+    console.error("Forgot password failed:", error);
+    return res.status(500).json({ message: "Unable to process forgot password request" });
+  }
+}
+
+async function resetPassword(req, res) {
+  try {
+    const token = String(req.body.token || "").trim();
+    const newPassword = String(req.body.newPassword || req.body.password || "");
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+
+    const users = await readJson(USERS_FILE, []);
+    const userIndex = users.findIndex(
+      (item) => item.resetToken === token && Number(item.resetTokenExpires) > Date.now()
+    );
+
+    if (userIndex === -1) {
+      return res.status(400).json({ message: "Reset token is invalid or expired" });
+    }
+
+    console.log("Password reset attempt:", { email: users[userIndex].email, token });
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    users[userIndex] = {
+      ...users[userIndex],
+      password: passwordHash,
+      resetToken: null,
+      resetTokenExpires: null,
+      passwordUpdatedAt: new Date().toISOString()
+    };
+
+    await writeJson(USERS_FILE, users);
+
+    return res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("Reset password failed:", error);
+    return res.status(500).json({ message: "Unable to reset password" });
+  }
+}
+
 module.exports = {
   signup,
   login,
   customerLogin,
-  getProfile
+  getProfile,
+  forgotPassword,
+  resetPassword
 };

@@ -8,7 +8,7 @@ import api from "../../utils/api";
 export default function AdminLoginPage() {
   const router = useRouter();
   const { setAdminToken, setAdminUser } = useShop();
-  const [credentials, setCredentials] = useState({ email: "admin@ramjibakery.in", password: "admin123" });
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const handleLogin = async (event) => {
@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
     <>
       <Seo title="Admin Login" description="Admin login for Ramji Bakery dashboard." path="/admin/login" />
       <section className="section-shell py-16">
-        <form onSubmit={handleLogin} className="glass-panel mx-auto max-w-lg space-y-5 p-8">
+        <form onSubmit={handleLogin} className="glass-panel mx-auto max-w-lg space-y-5 p-8" autoComplete="off">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-caramel">Admin access</p>
             <h1 className="mt-3 font-heading text-4xl text-cocoa">Manage products and orders</h1>
@@ -40,12 +40,18 @@ export default function AdminLoginPage() {
           <input
             className="soft-input"
             type="email"
+            name="admin-email"
+            placeholder="Admin email"
+            autoComplete="off"
             value={credentials.email}
             onChange={(e) => setCredentials((prev) => ({ ...prev, email: e.target.value }))}
           />
           <input
             className="soft-input"
             type="password"
+            name="admin-password"
+            placeholder="Password"
+            autoComplete="new-password"
             value={credentials.password}
             onChange={(e) => setCredentials((prev) => ({ ...prev, password: e.target.value }))}
           />

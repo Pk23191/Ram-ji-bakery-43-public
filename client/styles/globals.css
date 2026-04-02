@@ -48,3 +48,28 @@ a {
 .btn-secondary {
   @apply inline-flex items-center justify-center rounded-full border border-caramel/40 bg-white/80 px-5 py-3 text-sm font-semibold text-cocoa transition hover:-translate-y-0.5 hover:border-caramel hover:bg-latte/60;
 }
+
+.product-card__media {
+  height: 220px;
+}
+
+.product-card__image {
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.product-card:hover .product-card__image {
+  transform: scale(1.03);
+}
+
+@media (min-width: 640px) {
+  .product-card__media {
+    height: 240px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .product-card__media {
+    height: 260px;
+  }
+}
