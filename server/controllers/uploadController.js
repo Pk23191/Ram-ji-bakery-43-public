@@ -52,6 +52,7 @@ async function uploadImages(req, res) {
       url: urls[0] || ""
     });
   } catch (error) {
+    console.error("uploadImages error:", error);
     return res.status(500).json({
       message: error.message || "Image upload failed."
     });
@@ -83,6 +84,7 @@ async function uploadSingleImage(req, res) {
       url: uploadedAsset.secure_url
     });
   } catch (error) {
+    console.error("uploadSingleImage error:", error);
     return res.status(500).json({
       message: error.message || "Image upload failed."
     });
