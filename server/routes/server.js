@@ -34,7 +34,12 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+// Serve uploaded static files from the project root `uploads/` directory.
+// Using process.cwd() makes the path consistent when running from different working dirs.
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "uploads"))
+);
 
 // API route registration.
 app.use("/api/contact", contactRoutes);

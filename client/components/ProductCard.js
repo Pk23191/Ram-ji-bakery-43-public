@@ -25,7 +25,16 @@ export default function ProductCard({ product }) {
           };
 
           const src = getImageUrl(product.image);
-          return <img src={src} alt={product.name} style={{ width: "100%", height: "200px", objectFit: "cover" }} />;
+          return (
+            <img
+              src={src}
+              alt={product.name}
+              style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px" }}
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
+            />
+          );
         })()
       }
 
