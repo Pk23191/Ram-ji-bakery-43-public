@@ -92,7 +92,7 @@ async function uploadSingleImage(req, res) {
 function handleUploadError(error, req, res, next) {
   if (error instanceof multer.MulterError) {
     if (error.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({ message: "Each image must be 5MB or smaller." });
+        return res.status(400).json({ message: "Each image must be 2MB or smaller." });
     }
 
     if (error.code === "LIMIT_UNEXPECTED_FILE") {

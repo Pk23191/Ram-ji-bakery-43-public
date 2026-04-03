@@ -1,5 +1,6 @@
 const path = require("path");
 const { readJson, writeJson } = require("../utils/fileStore");
+const { uploadImageBuffer, getCloudinaryConfigError } = require("../config/cloudinary");
 
 const PRODUCTS_FILE = path.join(__dirname, "..", "data", "products.json");
 const CACHE_TTL_MS = 30 * 1000;
@@ -104,8 +105,29 @@ function parseMultiValue(value) {
   return [];
 }
 
-function buildUploadedFileUrls(req, files = []) {
-  return files.map((file) => `${req.protocol}://${req.get("host")}/uploads/${file.filename}`);
+async function uploadFilesToCloudinary(req, files = []) {
+  try {
+    const configError = getCloudinaryConfigError();
+    if (configError) {
+      throw new Error(configError);
+    }
+
+    if (!Array.isArray(files) || !files.length) return [];
+
+    const uploaded = await Promise.all(
+      files.map((file, index) =>
+        uploadImageBuffer(file.buffer, {
+          public_id: `product-${Date.now()}-${index + 1}`,
+          folder: "ramji-bakery/products",
+          transformation: [{ width: 400, crop: "scale", quality: "auto" }]
+        })
+      )
+    );
+
+    return uploaded.map((a) => a && a.secure_url).filter(Boolean);
+  } catch (error) {
+    throw error;
+  }
 }
 
 function normalizeProductPayload(body = {}, options = {}) {
@@ -158,11 +180,17 @@ async function getProducts(req, res) {
         try {
           const s = String(val).trim();
 
-          // If absolute URL, extract pathname and rebuild using apiRoot
+          // If absolute URL, only rewrite localhost/hosted-api paths to apiRoot.
           if (/^https?:\/\//i.test(s)) {
             try {
               const parsed = new URL(s);
-              return `${apiRoot}/${parsed.pathname.replace(/^\/+/, "")}${parsed.search || ""}`;
+              const hostHeader = req.get("host") || "";
+              const isLocalHost = /localhost|127\.0\.0\.1/i.test(parsed.hostname) || parsed.host === hostHeader;
+              if (isLocalHost) {
+                return `${apiRoot}/${parsed.pathname.replace(/^\/+/, "")}${parsed.search || ""}`;
+              }
+              // External URLs (e.g., Cloudinary) should be returned unchanged.
+              return s;
             } catch (e) {
               return s;
             }
@@ -208,10 +236,17 @@ async function getProductById(req, res) {
       const fixUrl = (val) => {
         if (!val) return val;
         const s = String(val).trim();
+
         if (/^https?:\/\//i.test(s)) {
           try {
             const parsed = new URL(s);
-            return `${apiRoot}/${parsed.pathname.replace(/^\/+/, "")}${parsed.search || ""}`;
+            const hostHeader = req.get("host") || "";
+            const isLocalHost = /localhost|127\.0\.0\.1/i.test(parsed.hostname) || parsed.host === hostHeader;
+            if (isLocalHost) {
+              return `${apiRoot}/${parsed.pathname.replace(/^\/+/, "")}${parsed.search || ""}`;
+            }
+
+            return s;
           } catch (e) {
             return s;
           }
@@ -240,8 +275,9 @@ async function createProduct(req, res) {
       category: req.body?.category,
       price: req.body?.price
     });
+    const uploadedImages = await uploadFilesToCloudinary(req, req.files || []);
     const payload = normalizeProductPayload(req.body, {
-      uploadedImages: buildUploadedFileUrls(req, req.files || [])
+      uploadedImages
     });
 
     if (!payload.images.length) {
@@ -277,13 +313,14 @@ async function updateProduct(req, res) {
     }
 
     const currentImages = parseMultiValue(req.body.existingImages);
+    const uploadedImages = await uploadFilesToCloudinary(req, req.files || []);
     const payload = normalizeProductPayload(
       {
         ...(currentProduct.toObject ? currentProduct.toObject() : currentProduct),
         ...req.body
       },
       {
-        uploadedImages: buildUploadedFileUrls(req, req.files || []),
+        uploadedImages,
         existingImages: currentImages.length ? currentImages : currentProduct.images || []
       }
     );
