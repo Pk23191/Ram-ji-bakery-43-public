@@ -3,93 +3,46 @@ import Link from "next/link";
 import { useShop } from "../context/ShopContext";
 import { formatCurrency } from "../utils/helpers";
 import api from "../utils/api";
+import ProductImage from "./ProductImage";
 
 export default function ProductCard({ product }) {
   const { addToCart } = useShop();
 
+  if (process.env.NODE_ENV === "development") {
+    // eslint-disable-next-line no-console
+    console.log("Product Image:", product?.image);
+  }
+
   const showPartyDetails = ["party", "balloons", "ribbons", "candles", "hats", "banners"].includes(product.category);
 
   return (
-    <motion.div className="rounded-xl border p-4 bg-white">
+    <motion.div className="flex flex-col bg-white rounded-2xl shadow-md p-3 md:rounded-xl md:shadow-soft md:p-4">
+      <div className="w-full overflow-hidden rounded-xl">
+        <div className="relative w-full aspect-square">
+          <ProductImage src={product.image} alt={product.name} fill className="object-cover" />
+        </div>
+      </div>
 
-      {/* IMAGE */}
-      {
-        (() => {
-          const getImageUrl = (img) => {
-            if (!img) return "/placeholder.svg";
-            if (/^https?:\/\//i.test(img)) return img;
-            // remove trailing /api if present in NEXT_PUBLIC_API_URL
-            const configured = (api && api.defaults && api.defaults.baseURL) || process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-            const apiRoot = String(configured).replace(/\/api\/?$/, "").replace(/\/$/, "");
-            return `${apiRoot}${img.startsWith("/") ? img : `/${img}`}`;
-          };
+      <h2 className="mt-2 text-sm font-semibold text-cocoa line-clamp-2 min-h-[2.5rem] md:mt-3 md:text-base">{product.name}</h2>
 
-          const src = getImageUrl(product.image);
-          return (
-            <img
-              src={src}
-              alt={product.name}
-              style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "10px" }}
-              onError={(e) => {
-                e.currentTarget.src = "/placeholder.svg";
-              }}
-            />
-          );
-        })()
-      }
+      <p className="text-caramel font-bold mt-1 text-base md:mt-2">{formatCurrency(product.price)}</p>
 
-      {/* TITLE */}
-      <h2 style={{ marginTop: "10px" }}>{product.name}</h2>
-
-      {/* PRICE */}
-      <p>{formatCurrency(product.price)}</p>
-
-      {/* BUTTON SECTION */}
-      <div
-        style={{
-          display: "flex",
-          gap: "10px",
-          marginTop: "10px",
-          alignItems: "center",
-          justifyContent: "space-between"
-        }}
-      >
-
-        {/* VIEW DETAILS */}
-        {showPartyDetails && (
-          <Link href={`/party/${product.id || product._id}`} style={{ textDecoration: "none" }}>
-            <button
-              style={{
-                padding: "8px 14px",
-                backgroundColor: "#f3f4f6",
-                color: "#333",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer"
-              }}
-            >
-              View Details
-            </button>
-          </Link>
-        )}
-
-        {/* ADD TO CART */}
+      <div className="mt-auto pt-3">
         <button
           onClick={() => addToCart(product)}
-          style={{
-            padding: "8px 14px",
-            backgroundColor: "#ff7a18",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer"
-          }}
+          className="w-full bg-cocoa text-cream py-2.5 rounded-xl font-semibold text-sm transition hover:bg-mocha active:scale-95"
         >
           Add to Cart
         </button>
-
       </div>
 
+      {showPartyDetails && (
+        <div className="mt-2 md:mt-3">
+          <Link href={`/party/${product.id || product._id}`} className="text-sm text-mocha/70 hover:text-cocoa">
+            View Details
+          </Link>
+        </div>
+      )}
     </motion.div>
   );
 }

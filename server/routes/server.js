@@ -18,6 +18,7 @@ const fileUserRoutes = require("./fileUserRoutes");
 const fileCouponRoutes = require("./fileCouponRoutes");
 const uploadRoutes = require("./upload");
 const uploadLegacyRoutes = require("./uploadRoutes");
+const bannerRoutes = require("./bannerRoutes");
 const { readJson, writeJson } = require("../utils/fileStore");
 
 const app = express();
@@ -53,6 +54,7 @@ app.use("/api/users", fileUserRoutes);
 app.use("/api/coupons", fileCouponRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/uploads", uploadLegacyRoutes);
+app.use("/api/banner", bannerRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, service: "Ramji Bakery API", dbConnected: false, readyState: 0 });
@@ -80,7 +82,7 @@ app.use((req, res) => {
   // so client-side routing (Next.js) can handle the route. Use PUBLIC_STORE_URL
   // or FRONTEND_URL environment variables if provided, otherwise default to
   // localhost:3000 which is the local Next dev server.
-  const frontendUrl = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "http://localhost:3000";
+  const frontendUrl = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery.vercel.app";
 
   if (req.accepts("html")) {
     // Preserve the original path so the frontend can handle it.

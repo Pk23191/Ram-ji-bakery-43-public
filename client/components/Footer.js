@@ -6,7 +6,7 @@ export default function Footer() {
   const { phone, email } = useOwnerContact();
 
   return (
-    <footer className="mt-20 border-t border-white/50 bg-cocoa text-cream">
+    <footer className="mt-20 mb-16 md:mb-0 border-t border-white/50 bg-cocoa text-cream">
       <div className="section-shell grid gap-10 py-14 md:grid-cols-3">
         <div>
           <div className="flex items-center gap-4">

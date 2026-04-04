@@ -41,7 +41,7 @@ function buildOrderMessage(order) {
     `Total: ${formatCurrency(order.total)}`,
     `Payment: ${order.paymentMethod}`,
     `Image: ${order.items?.[0]?.image || "-"}`,
-    `Link: ${process.env.PUBLIC_STORE_URL || "http://localhost:3000/orders"}`,
+    `Link: ${process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery.vercel.app/orders"}`,
     `Order Time: ${formatOrderTime(order.orderTime)}`
   ].join("\n");
 }
