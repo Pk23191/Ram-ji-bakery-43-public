@@ -66,6 +66,12 @@ export default function AdminDashboardPage() {
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [banners, setBanners] = useState([]);
+  const [bannersLoading, setBannersLoading] = useState(false);
+  const [bannerFile, setBannerFile] = useState(null);
+  const [bannerTitle, setBannerTitle] = useState("Homepage Banner");
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerPreview, setBannerPreview] = useState("");
 
   const loadDashboard = async () => {
     try {
@@ -216,6 +222,7 @@ export default function AdminDashboardPage() {
     loadOrders();
     loadUsers();
     loadCoupons();
+    loadBanners();
   }, [adminToken]);
 
   // Support linking from the products list: /admin?edit=<productId>
@@ -562,6 +569,72 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const loadBanners = async () => {
+    try {
+      setBannersLoading(true);
+      const { data } = await api.get("/banner/all");
+      setBanners(Array.isArray(data) ? data : []);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to load banners");
+    } finally {
+      setBannersLoading(false);
+    }
+  };
+
+  const handleBannerFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setBannerFile(file);
+    const url = URL.createObjectURL(file);
+    setBannerPreview(url);
+    event.target.value = "";
+  };
+
+  const handleBannerUpload = async (event) => {
+    event.preventDefault();
+    if (!bannerFile) {
+      toast.error("Please select a banner image first");
+      return;
+    }
+    try {
+      setBannerUploading(true);
+      const formData = new FormData();
+      formData.append("image", bannerFile);
+      formData.append("title", bannerTitle.trim() || "Homepage Banner");
+      await api.post("/banner/upload", formData);
+      toast.success("Banner uploaded successfully");
+      setBannerFile(null);
+      setBannerTitle("Homepage Banner");
+      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+      setBannerPreview("");
+      loadBanners();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Banner upload failed");
+    } finally {
+      setBannerUploading(false);
+    }
+  };
+
+  const handleDeleteBanner = async (bannerId) => {
+    try {
+      await api.delete(`/banner/${bannerId}`);
+      toast.success("Banner deleted");
+      loadBanners();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to delete banner");
+    }
+  };
+
+  const handleActivateBanner = async (bannerId) => {
+    try {
+      await api.patch(`/banner/${bannerId}/activate`);
+      toast.success("Banner activated");
+      loadBanners();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to activate banner");
+    }
+  };
+
   const dashboardCards = [
     { label: "Total Sales", value: formatCurrency(dashboard.totalSales) },
     { label: "Today's Sales", value: formatCurrency(dashboard.todaySales) },
@@ -670,17 +743,77 @@ export default function AdminDashboardPage() {
                   ))}
 
                   <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-cocoa">Category</span>
+                    <select
+                      className="soft-input"
+                      value={formData.category}
+                      onChange={(event) => handleChange("category", event.target.value)}
+                    >
+                      {productCategories.map((cat) => (
+                        <option key={cat} value={cat}>{categoryLabels[cat] || cat}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-cocoa">Description</span>
+                    <textarea
+                      className="soft-input"
+                      rows={3}
+                      placeholder="Short product description"
+                      value={formData.description}
+                      onChange={(event) => handleChange("description", event.target.value)}
+                    />
+                  </label>
+
+                  <label className="block">
                     <span className="mb-2 block text-sm font-semibold text-cocoa">Product Images (up to 4)</span>
                     <input
                       type="file"
                       name="image"
-                      accept="image/png,image/jpeg"
+                      accept="image/*"
                       multiple
                       className="soft-input file:mr-4 file:rounded-full file:border-0 file:bg-cocoa file:px-4 file:py-2 file:text-sm file:font-semibold file:text-cream"
                       onChange={handleImageUpload}
                     />
-                    <p className="mt-2 text-xs text-mocha/60">Select up to 4 JPG/PNG files from your device. These will be uploaded with the product form.</p>
+                    <p className="mt-2 text-xs text-mocha/60">Select up to 4 JPG, PNG or WebP files from your device. These will be uploaded with the product form.</p>
                   </label>
+
+                  {formData.existingImages.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-sm font-semibold text-cocoa">Current Images</p>
+                      <div className="flex flex-wrap gap-3">
+                        {formData.existingImages.map((img, idx) => (
+                          <div key={idx} className="relative">
+                            <img src={img} alt={`existing-${idx}`} className="h-20 w-20 rounded-xl object-cover" />
+                            <button
+                              type="button"
+                              className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+                              onClick={() => removeExistingImage(idx)}
+                            >×</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedFilePreviews.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-sm font-semibold text-cocoa">Selected Files</p>
+                      <div className="flex flex-wrap gap-3">
+                        {selectedFilePreviews.map((url, idx) => (
+                          <div key={idx} className="relative">
+                            <img src={url} alt={`selected-${idx}`} className="h-20 w-20 rounded-xl object-cover" />
+                            <button
+                              type="button"
+                              className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+                              onClick={() => removeSelectedFile(idx)}
+                            >×</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <button className="btn-primary flex-1" disabled={isSaving}>
@@ -863,6 +996,123 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             </>
+          ) : null}
+
+          {/* Banner Management */}
+          {activeSection === "banner" ? (
+            <div className="glass-panel col-span-full p-6">
+              <SectionHeader
+                eyebrow="Homepage banner"
+                title="Manage homepage banner image"
+                description="Upload a new banner image to replace the hero section image on the homepage. Only one banner is active at a time."
+              />
+
+              <form className="mt-6 space-y-4" onSubmit={handleBannerUpload}>
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-cocoa">Banner Title</span>
+                  <input
+                    type="text"
+                    className="soft-input"
+                    placeholder="Homepage Banner"
+                    value={bannerTitle}
+                    onChange={(event) => setBannerTitle(event.target.value)}
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-cocoa">Banner Image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="soft-input file:mr-4 file:rounded-full file:border-0 file:bg-cocoa file:px-4 file:py-2 file:text-sm file:font-semibold file:text-cream"
+                    onChange={handleBannerFileChange}
+                  />
+                  <p className="mt-2 text-xs text-mocha/60">
+                    Recommended: landscape image, at least 1200×600px for best display on all devices.
+                  </p>
+                </label>
+
+                {bannerPreview && (
+                  <div className="mt-3">
+                    <p className="mb-2 text-sm font-semibold text-cocoa">Preview</p>
+                    <img
+                      src={bannerPreview}
+                      alt="Banner preview"
+                      className="max-h-48 w-full rounded-[20px] object-cover"
+                    />
+                  </div>
+                )}
+
+                <button className="btn-primary" disabled={bannerUploading || !bannerFile}>
+                  {bannerUploading ? (
+                    <span className="inline-flex items-center gap-2">
+                      <LoaderCircle size={18} className="animate-spin" /> Uploading...
+                    </span>
+                  ) : (
+                    "Upload Banner"
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-8">
+                <h3 className="font-heading text-xl text-cocoa">Existing Banners</h3>
+                {bannersLoading ? (
+                  <div className="mt-4 flex items-center justify-center py-8">
+                    <LoaderCircle size={28} className="animate-spin text-caramel" />
+                  </div>
+                ) : banners.length ? (
+                  <div className="mt-4 grid gap-4">
+                    {banners.map((banner) => (
+                      <div
+                        key={banner.id}
+                        className={`flex flex-col gap-4 rounded-[24px] border p-4 sm:flex-row sm:items-center ${
+                          banner.isActive
+                            ? "border-caramel/40 bg-latte/30"
+                            : "border-white/60 bg-white/80"
+                        }`}
+                      >
+                        <img
+                          src={banner.image}
+                          alt={banner.title}
+                          className="h-24 w-full rounded-[18px] object-cover sm:w-40"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-cocoa">{banner.title}</p>
+                          <p className="mt-1 text-xs text-mocha/60">
+                            {new Date(banner.createdAt).toLocaleDateString()}
+                          </p>
+                          {banner.isActive && (
+                            <span className="mt-2 inline-flex rounded-full bg-caramel/20 px-3 py-1 text-xs font-semibold text-caramel">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {!banner.isActive && (
+                            <button
+                              className="btn-secondary text-sm"
+                              onClick={() => handleActivateBanner(banner.id)}
+                            >
+                              Set Active
+                            </button>
+                          )}
+                          <button
+                            className="rounded-full border border-rose/30 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+                            onClick={() => handleDeleteBanner(banner.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-[24px] bg-latte/30 p-6 text-center text-sm text-mocha/70">
+                    No banners uploaded yet. Upload one above to set it as the homepage hero image.
+                  </div>
+                )}
+              </div>
+            </div>
           ) : null}
 
           {/* Users View */}

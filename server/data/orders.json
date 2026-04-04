@@ -1,12 +1,36 @@
 [
   {
+    "orderId": "RB799275",
+    "customer": "Piyush",
+    "customerEmail": "",
+    "phone": "8269886676",
+    "address": "AAMKHO  GWALIOR",
+    "paymentMethod": "COD",
+    "status": "Pending",
+    "total": 20.3,
+    "items": [
+      {
+        "productId": "1775333596080-he6k22",
+        "name": "butterfly  hat",
+        "image": "https://res.cloudinary.com/dxjhtsb2s/image/upload/v1775333599/ramji-bakery/products/product-1775333591296-1.jpg",
+        "category": "hats",
+        "quantity": 1,
+        "price": 29,
+        "customizations": null
+      }
+    ],
+    "orderTime": "2026-04-04T20:33:19.235Z",
+    "createdAt": "2026-04-04T20:33:19.276Z",
+    "updatedAt": "2026-04-04T20:33:19.276Z"
+  },
+  {
     "orderId": "RB821460",
     "customer": "Piyush",
     "customerEmail": "bagulyapiyush@gmail.com",
     "phone": "8269886676",
     "address": "AAMKHO  GWALIOR",
     "paymentMethod": "COD",
-    "status": "Pending",
+    "status": "Preparing",
     "total": 84,
     "items": [
       {
@@ -21,7 +45,7 @@
     ],
     "orderTime": "2026-04-04T11:40:21.454Z",
     "createdAt": "2026-04-04T11:40:21.481Z",
-    "updatedAt": "2026-04-04T11:40:21.481Z"
+    "updatedAt": "2026-04-04T20:21:20.737Z"
   },
   {
     "orderId": "RB002157",
@@ -86,7 +110,7 @@
       {
         "productId": "1775066709551-dhfjcu",
         "name": "birthday queen cap",
-        "image": "http://localhost:5000/uploads/1775066709524-ChatGPT-Image-Mar-20-2026-034853-PM.png",
+        "image": "https://ram-ji-bakery23.onrender.com/uploads/1775066709524-ChatGPT-Image-Mar-20-2026-034853-PM.png",
         "category": "hats",
         "quantity": 1,
         "price": 120,
@@ -110,7 +134,7 @@
       {
         "productId": "1775066649453-2vy3yt",
         "name": "matlic happy aniversary banner",
-        "image": "http://localhost:5000/uploads/1775066649449-ChatGPT-Image-Mar-20-2026-035317-PM-1.png",
+        "image": "https://ram-ji-bakery23.onrender.com/uploads/1775066649449-ChatGPT-Image-Mar-20-2026-035317-PM-1.png",
         "category": "banners",
         "quantity": 1,
         "price": 13,
@@ -134,7 +158,7 @@
       {
         "productId": "1775048474909-aw5eah",
         "name": "BALLON1",
-        "image": "http://localhost:5000/uploads/1775048474896-19.jpeg",
+        "image": "https://ram-ji-bakery23.onrender.com/uploads/1775048474896-19.jpeg",
         "category": "party",
         "quantity": 1,
         "price": 198,
@@ -158,7 +182,7 @@
       {
         "productId": "1775048474909-aw5eah",
         "name": "BALLON1",
-        "image": "http://localhost:5000/uploads/1775048474896-19.jpeg",
+        "image": "https://ram-ji-bakery23.onrender.com/uploads/1775048474896-19.jpeg",
         "category": "party",
         "quantity": 1,
         "price": 198,
@@ -182,7 +206,7 @@
       {
         "productId": "1775048474909-aw5eah",
         "name": "BALLON1",
-        "image": "http://localhost:5000/uploads/1775048474896-19.jpeg",
+        "image": "https://ram-ji-bakery23.onrender.com/uploads/1775048474896-19.jpeg",
         "category": "party",
         "quantity": 1,
         "price": 198,
@@ -206,7 +230,7 @@
       {
         "productId": "1775048474909-aw5eah",
         "name": "BALLON1",
-        "image": "http://localhost:5000/uploads/1775048474896-19.jpeg",
+        "image": "https://ram-ji-bakery23.onrender.com/uploads/1775048474896-19.jpeg",
         "category": "party",
         "quantity": 1,
         "price": 198,
@@ -230,7 +254,7 @@
       {
         "productId": "1775048474909-aw5eah",
         "name": "BALLON1",
-        "image": "http://localhost:5000/uploads/1775048474896-19.jpeg",
+        "image": "https://ram-ji-bakery23.onrender.com/uploads/1775048474896-19.jpeg",
         "category": "party",
         "quantity": 1,
         "price": 198,

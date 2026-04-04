@@ -16,22 +16,21 @@ export default function ProductCard({ product }) {
   const showPartyDetails = ["party", "balloons", "ribbons", "candles", "hats", "banners"].includes(product.category);
 
   return (
-    <motion.div className="bg-white rounded-2xl shadow-md p-3 md:rounded-xl md:shadow-none md:p-4">
-      {/* Mobile-first card: image on top */}
+    <motion.div className="flex flex-col bg-white rounded-2xl shadow-md p-3 md:rounded-xl md:shadow-soft md:p-4">
       <div className="w-full overflow-hidden rounded-xl">
-        <div className="relative w-full aspect-[1/1] md:aspect-[4/3]">
-          <ProductImage src={product.image} alt={product.name} fill className="object-contain" />
+        <div className="relative w-full aspect-square">
+          <ProductImage src={product.image} alt={product.name} fill className="object-cover" />
         </div>
       </div>
 
-      <h2 className="mt-2 text-base font-semibold text-cocoa md:mt-3">{product.name}</h2>
+      <h2 className="mt-2 text-sm font-semibold text-cocoa line-clamp-2 min-h-[2.5rem] md:mt-3 md:text-base">{product.name}</h2>
 
-      <p className="text-orange-500 font-bold mt-1 md:mt-2">{formatCurrency(product.price)}</p>
+      <p className="text-caramel font-bold mt-1 text-base md:mt-2">{formatCurrency(product.price)}</p>
 
-      <div className="mt-3 md:mt-4">
+      <div className="mt-auto pt-3">
         <button
           onClick={() => addToCart(product)}
-          className="w-full bg-orange-500 text-white py-2 rounded-xl font-semibold md:inline-block md:w-auto md:px-4"
+          className="w-full bg-cocoa text-cream py-2.5 rounded-xl font-semibold text-sm transition hover:bg-mocha active:scale-95"
         >
           Add to Cart
         </button>

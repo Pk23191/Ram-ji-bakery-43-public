@@ -23,30 +23,30 @@ export default function Navbar() {
   const { cart } = useShop();
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur bg-white/60 shadow-sm">
+    <header className="sticky top-0 z-40 backdrop-blur-lg bg-white/80 shadow-sm">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/" className="flex items-center gap-3">
             <div className="relative h-12 w-12 overflow-hidden rounded-2xl border border-white/70 bg-white shadow-soft">
               <Image src="/logo.svg" alt="Ramji Bakery logo" fill className="object-cover p-1" priority />
             </div>
-            <span className="hidden sm:inline font-sans font-extrabold text-xl text-pink-600">Ram Ji Bakery</span>
+            <span className="hidden sm:inline font-sans font-extrabold text-xl text-cocoa">Ram Ji Bakery</span>
           </Link>
         </div>
 
-        <nav className="hidden lg:flex gap-8 items-center text-sm text-slate-700">
-          <Link href="/menu" className="hover:text-pink-600">Menu</Link>
-          <Link href="/cakes" className="hover:text-pink-600">Cakes</Link>
-          <Link href="/party" className="hover:text-pink-600">Party</Link>
-          <Link href="/about" className="hover:text-pink-600">About</Link>
+        <nav className="hidden lg:flex gap-8 items-center text-sm text-mocha">
+          <Link href="/menu" className="hover:text-caramel transition">Menu</Link>
+          <Link href="/cakes" className="hover:text-caramel transition">Cakes</Link>
+          <Link href="/party" className="hover:text-caramel transition">Party</Link>
+          <Link href="/about" className="hover:text-caramel transition">About</Link>
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link href="/cart" className="relative inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-pink-50 text-pink-700 shadow-sm hover:scale-95 transition">
+          <Link href="/cart" className="relative inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-latte/50 text-cocoa shadow-sm hover:bg-latte transition">
             <ShoppingCart size={18} />
-            <span className="text-sm">{cart?.length || 0}</span>
+            <span className="text-sm font-semibold">{cart?.length || 0}</span>
           </Link>
-          <button className="px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100" onClick={() => router.push('/login')}>
+          <button className="px-3 py-2 rounded-lg text-sm text-mocha hover:bg-latte/40 transition" onClick={() => router.push('/login')}>
             Login
           </button>
 
@@ -63,7 +63,7 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          <Link href="/cart" className="block rounded-2xl bg-pink-500 px-4 py-3 text-center text-sm font-semibold text-white" onClick={() => setOpen(false)}>
+          <Link href="/cart" className="block rounded-2xl bg-cocoa px-4 py-3 text-center text-sm font-semibold text-cream" onClick={() => setOpen(false)}>
             Cart ({cart?.length || 0})
           </Link>
         </div>

@@ -10,12 +10,12 @@ const RESET_TOKEN_EXPIRY_MINUTES = 30;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function buildAppUrl(path = "") {
-  const base = process.env.PUBLIC_STORE_URL || "http://localhost:3000";
+  const base = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery.vercel.app";
   return `${base}${path}`;
 }
 
 function buildApiUrl(path = "") {
-  const base = process.env.PUBLIC_API_URL || "http://localhost:5000/api";
+  const base = process.env.PUBLIC_API_URL || "https://ram-ji-bakery23.onrender.com/api";
   return `${base}${path}`;
 }
 

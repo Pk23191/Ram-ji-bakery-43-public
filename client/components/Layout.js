@@ -5,9 +5,9 @@ import MobileBottomNav from "./MobileBottomNav";
 
 export default function Layout({ children }) {
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative min-h-screen overflow-x-hidden">
       <Navbar />
-      <main>{children}</main>
+      <main className="pb-20 md:pb-0">{children}</main>
       <Footer />
       <MobileBottomNav />
       <Toaster position="top-right" />

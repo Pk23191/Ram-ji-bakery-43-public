@@ -1,5 +1,22 @@
 [
   {
+    "name": "butterfly  hat",
+    "price": 29,
+    "discountPercent": 0,
+    "category": "hats",
+    "description": "",
+    "colors": [],
+    "image": "https://res.cloudinary.com/dxjhtsb2s/image/upload/v1775333599/ramji-bakery/products/product-1775333591296-1.jpg",
+    "images": [
+      "https://res.cloudinary.com/dxjhtsb2s/image/upload/v1775333599/ramji-bakery/products/product-1775333591296-1.jpg"
+    ],
+    "badge": "Admin Added",
+    "rating": 4.7,
+    "_id": "1775333596080-he6k22",
+    "createdAt": "2026-04-04T20:13:16.080Z",
+    "updatedAt": "2026-04-04T20:13:16.080Z"
+  },
+  {
     "name": "hat",
     "price": 18,
     "discountPercent": 0,

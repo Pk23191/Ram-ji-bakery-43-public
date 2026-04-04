@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Home, Box, ShoppingCart, Users, Settings, LogOut } from "lucide-react";
+import { Home, Box, ShoppingCart, Users, Settings, LogOut, ImageIcon } from "lucide-react";
 
 export default function Sidebar({ onLogout, onSelect, activeSection }) {
   const makeItem = (key, Icon, label, href) => {
@@ -29,6 +29,7 @@ export default function Sidebar({ onLogout, onSelect, activeSection }) {
         <li>{makeItem("dashboard", Home, "Dashboard", "/admin")}</li>
         <li>{makeItem("products", Box, "Products", "/admin/products")}</li>
         <li>{makeItem("orders", ShoppingCart, "Orders", "/admin/orders")}</li>
+        <li>{makeItem("banner", ImageIcon, "Banner", "/admin")}</li>
         <li>{makeItem("users", Users, "Users", "/admin/users")}</li>
         <li>{makeItem("settings", Settings, "Settings", "/admin")}</li>
       </ul>
