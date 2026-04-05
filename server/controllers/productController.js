@@ -302,7 +302,9 @@ async function createProduct(req, res) {
       const configError = getCloudinaryConfigError();
       if (configError) {
         console.error("Cloudinary config error:", configError);
-        return res.status(500).json({ message: configError });
+        return res.status(400).json({
+          message: "Image upload failed. Check Cloudinary config."
+        });
       }
       uploadedImages = await uploadFilesToCloudinary(req, files);
     }

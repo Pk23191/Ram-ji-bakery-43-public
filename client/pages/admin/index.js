@@ -393,7 +393,20 @@ export default function AdminDashboardPage() {
         await api.put(`/products/${editingId}`, payload);
         toast.success("Product updated successfully");
       } else {
-        await api.post("/products", payload);
+        const token = window.localStorage.getItem("ramji-admin-token");
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://ram-ji-bakery23.onrender.com/api";
+        const res = await fetch(`${apiUrl}/products/add`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: payload
+        });
+        
+        if (!res.ok) {
+          const errInfo = await res.json().catch(() => ({}));
+          throw new Error(errInfo.message || errInfo.error || "Server error. Check logs and env variables.");
+        }
         toast.success("Product added successfully");
       }
 
