@@ -1,7 +1,7 @@
 const dns = require("dns");
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, ".env") });
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 require("express-async-errors");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
@@ -16,6 +16,7 @@ const fileReviewRoutes = require("./fileReviewRoutes");
 const fileDashboardRoutes = require("./fileDashboardRoutes");
 const fileUserRoutes = require("./fileUserRoutes");
 const fileCouponRoutes = require("./fileCouponRoutes");
+const { getCloudinaryConfigError } = require("../config/cloudinary");
 const uploadRoutes = require("./upload");
 const uploadLegacyRoutes = require("./uploadRoutes");
 const bannerRoutes = require("./bannerRoutes");
@@ -177,6 +178,14 @@ function registerShutdownHandlers() {
 
 async function startServer() {
   await ensureDefaultAdmin();
+
+  const cloudinaryError = getCloudinaryConfigError();
+  if (cloudinaryError) {
+    console.warn("⚠️  WARNING:", cloudinaryError, "Product image uploads will fail until this is fixed.");
+  } else {
+    console.log("Cloudinary configured successfully.");
+  }
+
   server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
   server.on("error", (error) => {
