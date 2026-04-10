@@ -9,6 +9,9 @@
     "server:dev": "cd server && npm run dev",
     "client:build": "npm --prefix client run build",
     "server:start": "npm --prefix server run start",
+    "build": "npm run build:all",
+    "build:all": "npm --prefix client run build",
+    "start": "npm --prefix server run start",
     "install:all": "npm install && npm --prefix client install && npm --prefix server install"
   },
   "devDependencies": {

@@ -1,13 +1,32 @@
 import axios from "axios";
 
-const rawBaseUrl =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.VITE_API_URL ||
-  "https://ram-ji-bakery23.onrender.com/api";
-const baseURL = rawBaseUrl.replace(/\/+$/, "");
+// Determine API base URL based on environment
+const getBaseURL = () => {
+  // For production (deployed on Vercel)
+  if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
+    return "/api"; // Use relative path (same domain)
+  }
+  
+  // Explicit environment variable (set in Vercel project settings)
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // Fallback for local development
+  if (typeof window !== "undefined") {
+    return "http://localhost:5000/api";
+  }
+  
+  // Fallback for SSR
+  return "/api";
+};
+
+const baseURL = getBaseURL().replace(/\/+$/, "");
 
 const api = axios.create({
-  baseURL
+  baseURL,
+  timeout: 30000,
+  withCredentials: true
 });
 
 // Helper used by admin UI to set global auth header for admin requests.

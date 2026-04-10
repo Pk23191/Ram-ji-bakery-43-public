@@ -6,7 +6,9 @@ require("express-async-errors");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
 const express = require("express");
+const mongoose = require("mongoose");
 
+const connectDB = require("../config/db");
 const contactRoutes = require("./contactRoutes");
 const productRoutes = require("./productRoutes");
 const fileAuthRoutes = require("./fileAuthRoutes");
@@ -20,6 +22,7 @@ const { getCloudinaryConfigError } = require("../config/cloudinary");
 const uploadRoutes = require("./upload");
 const uploadLegacyRoutes = require("./uploadRoutes");
 const bannerRoutes = require("./bannerRoutes");
+const imageRoutes = require("./imageRoutes");
 const { readJson, writeJson } = require("../utils/fileStore");
 
 const app = express();
@@ -74,16 +77,19 @@ app.use("/api/coupons", fileCouponRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/uploads", uploadLegacyRoutes);
 app.use("/api/banner", bannerRoutes);
+app.use("/api/images", imageRoutes);
 
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, service: "Ramji Bakery API", dbConnected: false, readyState: 0 });
+  const readyState = mongoose.connection.readyState;
+  res.json({ ok: true, service: "Ramji Bakery API", dbConnected: readyState === 1, readyState });
 });
 
 app.get("/api/test-db", (req, res) => {
+  const readyState = mongoose.connection.readyState;
   res.json({
-    ok: true,
-    dbConnected: false,
-    readyState: 0
+    ok: readyState === 1,
+    dbConnected: readyState === 1,
+    readyState
   });
 });
 
@@ -178,6 +184,12 @@ function registerShutdownHandlers() {
 
 async function startServer() {
   await ensureDefaultAdmin();
+
+  try {
+    await connectDB();
+  } catch (error) {
+    console.error("MongoDB connection failed. Image persistence will be unavailable until this is fixed.");
+  }
 
   const cloudinaryError = getCloudinaryConfigError();
   if (cloudinaryError) {

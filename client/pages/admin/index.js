@@ -389,24 +389,25 @@ export default function AdminDashboardPage() {
         return;
       }
 
+      if (!formData.name.trim()) {
+        toast.error("Product name is required");
+        return;
+      }
+
+      if (!formData.price || Number(formData.price) <= 0) {
+        toast.error("Product price must be greater than 0");
+        return;
+      }
+
       if (editingId) {
-        await api.put(`/products/${editingId}`, payload);
+        await api.put(`/products/${editingId}`, payload, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
         toast.success("Product updated successfully");
       } else {
-        const token = window.localStorage.getItem("ramji-admin-token");
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://ram-ji-bakery23.onrender.com/api";
-        const res = await fetch(`${apiUrl}/products/add`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: payload
+        await api.post("/products/add", payload, {
+          headers: { "Content-Type": "multipart/form-data" }
         });
-        
-        if (!res.ok) {
-          const errInfo = await res.json().catch(() => ({}));
-          throw new Error(errInfo.message || errInfo.error || "Server error. Check logs and env variables.");
-        }
         toast.success("Product added successfully");
       }
 
@@ -415,7 +416,9 @@ export default function AdminDashboardPage() {
       await loadProducts();
       await loadDashboard();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Unable to save product");
+      const msg = error.response?.data?.message || error.message || "Unable to save product";
+      toast.error(msg);
+      console.error("Product save error:", error);
     } finally {
       setIsSaving(false);
     }
