@@ -14,10 +14,11 @@ export default function ProductImage({ src, alt, fill, width, height, className,
     if (!s) return null;
     const str = String(s).trim();
     if (!str) return null;
+    if (str.startsWith("data:image/")) return str;
     // Ensure HTTPS for security
     if (str.startsWith("//")) return "https:" + str;
     if (str.startsWith("http:")) return str.replace(/^http:/, "https:");
-    if (!str.startsWith("http")) return "https://" + str;
+    if (!str.startsWith("http")) return str;
     return str;
   };
 

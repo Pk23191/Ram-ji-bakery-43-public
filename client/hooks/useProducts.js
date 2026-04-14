@@ -48,7 +48,7 @@ export default function useProducts(category = "", options = {}) {
     return () => {
       active = false;
     };
-  }, [category]);
+  }, [category, options.limit, options.page]);
 
   return { products, isLoading, error };
 }
