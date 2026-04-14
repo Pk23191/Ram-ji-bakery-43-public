@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import AdminGuard from "../../components/AdminGuard";
 import Seo from "../../components/Seo";
+import { useRouter } from "next/router";
 import AdminHeader from "../../components/admin/AdminHeader";
 import Sidebar from "../../components/admin/Sidebar";
+import { useShop } from "../../context/ShopContext";
 import api from "../../utils/api";
 
 export default function AdminImagesPage() {
+  const router = useRouter();
+  const { setAdminToken, setAdminUser } = useShop();
   const [images, setImages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -74,7 +78,14 @@ export default function AdminImagesPage() {
       <section className="section-shell py-10">
         <div className="grid gap-6 md:grid-cols-[260px_1fr]">
           <div className="glass-panel h-fit p-4">
-            <Sidebar />
+            <Sidebar
+              activeSection="images"
+              onLogout={() => {
+                setAdminToken("");
+                setAdminUser(null);
+                router.replace("/admin/login");
+              }}
+            />
           </div>
           <div className="glass-panel p-6">
             <AdminHeader
@@ -145,4 +156,3 @@ export default function AdminImagesPage() {
     </AdminGuard>
   );
 }
-

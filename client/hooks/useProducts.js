@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { normalizeProduct } from "../data/site";
 import api from "../utils/api";
 
-export default function useProducts(category = "") {
+export default function useProducts(category = "", options = {}) {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -14,12 +14,17 @@ export default function useProducts(category = "") {
 
     async function loadProducts() {
       try {
-        const { data } = await api.get("/products", {
-          params: category ? { category } : undefined
-        });
+        const params = {};
+        if (category) params.category = category;
+        if (options.limit) params.limit = options.limit;
+        if (options.page) params.page = options.page;
+
+        const { data } = await api.get("/products", { params: Object.keys(params).length ? params : undefined });
+        // If paginated response, normalize items
+        const payload = Array.isArray(data) ? data : data?.items || [];
         const normalizedProducts = Array.isArray(data)
           ? data.map((product) => normalizeProduct(product))
-          : [];
+          : payload.map((product) => normalizeProduct(product));
 
         if (active) {
           setProducts(normalizedProducts);

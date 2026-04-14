@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LoaderCircle, PencilLine, PlusCircle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
@@ -35,6 +36,7 @@ const emptyForm = {
 export default function AdminDashboardPage() {
   const { adminToken, adminUser, setAdminToken, setAdminUser } = useShop();
   const router = useRouter();
+  const sectionOptions = ["dashboard", "products", "orders", "banner", "images", "coupons", "users", "settings"];
   const [activeSection, setActiveSection] = useState("dashboard");
   const [formData, setFormData] = useState(emptyForm);
   const [products, setProducts] = useState([]);
@@ -224,6 +226,12 @@ export default function AdminDashboardPage() {
     loadCoupons();
     loadBanners();
   }, [adminToken]);
+
+  useEffect(() => {
+    const requested = typeof router.query.section === "string" ? router.query.section : "";
+    const nextSection = sectionOptions.includes(requested) ? requested : "dashboard";
+    setActiveSection(nextSection);
+  }, [router.query.section]);
 
   // Support linking from the products list: /admin?edit=<productId>
   useEffect(() => {
@@ -670,7 +678,6 @@ export default function AdminDashboardPage() {
                 setAdminToken("");
                 setAdminUser(null);
               }}
-              onSelect={setActiveSection}
               activeSection={activeSection}
             />
           </aside>
@@ -1245,7 +1252,7 @@ export default function AdminDashboardPage() {
               </div>
             </>
           ) : null}
-
+          {activeSection === "coupons" ? (
             <div className="glass-panel p-6">
               <SectionHeader
                 eyebrow="Coupons"
@@ -1298,52 +1305,35 @@ export default function AdminDashboardPage() {
                 )}
               </div>
             </div>
+          ) : null}
 
+          {activeSection === "images" ? (
             <div className="glass-panel p-6">
               <SectionHeader
-                eyebrow="Customer accounts"
-                title="Manage customer accounts"
-                description="View customer accounts, verify status, and control account roles."
+                eyebrow="Image library"
+                title="Manage reusable product images"
+                description="Upload once and reuse images across multiple products."
               />
-              {usersLoading ? (
-                <div className="rounded-[24px] bg-latte/30 p-4 text-sm text-mocha/70">Loading users...</div>
-              ) : users.length ? (
-                <div className="mt-6 grid gap-4">
-                  {users.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex flex-col gap-3 rounded-[24px] border border-white/60 bg-white/80 p-4 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="font-semibold text-cocoa">{user.name}</p>
-                        <p className="text-sm text-mocha/60">{user.email}</p>
-                        <p className="text-xs text-mocha/60">Status: {user.emailVerified ? "Verified" : "Unverified"}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        {adminUser?.role === "superadmin" ? (
-                          <select
-                            className="soft-input"
-                            value={user.role}
-                            onChange={(event) => handleRoleUpdate(user.id, event.target.value)}
-                          >
-                            <option value="customer">Customer</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        ) : null}
-                        <button
-                          className="rounded-full border border-rose/30 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-[24px] bg-latte/30 p-4 text-sm text-mocha/70">No users found.</div>
-              )}
+              <div className="mt-6">
+                <Link href="/admin/images" className="btn-primary">
+                  Open Image Library
+                </Link>
+              </div>
             </div>
+          ) : null}
+
+          {activeSection === "settings" ? (
+            <div className="glass-panel p-6">
+              <SectionHeader
+                eyebrow="Settings"
+                title="Store settings"
+                description="Add business settings here as new features go live."
+              />
+              <p className="mt-4 text-sm text-mocha/70">
+                Settings are coming soon. Use the sidebar to manage products, orders, coupons, and images.
+              </p>
+            </div>
+          ) : null}
         </div>
           </main>
         </div>

@@ -5,7 +5,11 @@ require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 require("express-async-errors");
 const bcrypt = require("bcryptjs");
 const cors = require("cors");
+const compression = require("compression");
 const express = require("express");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const mongoSanitize = require("express-mongo-sanitize");
 const mongoose = require("mongoose");
 
 const connectDB = require("../config/db");
@@ -29,6 +33,35 @@ const app = express();
 let server;
 
 app.set("trust proxy", 1);
+
+// Security middleware
+app.use(helmet());
+app.use(
+  mongoSanitize({
+    replaceWith: "_"
+  })
+);
+
+// Basic API rate limiter
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // limit each IP to 200 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Tighter limiter for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { message: "Too many auth attempts, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Apply rate limiters
+app.use("/api/", apiLimiter);
+app.use("/api/auth", authLimiter);
 
 // Core middleware for API requests and media uploads.
 const allowedOrigins = [
@@ -64,6 +97,8 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// Enable gzip/deflate compression for API responses to reduce payload size
+app.use(compression());
 // Serve uploaded static files from the project root `uploads/` directory.
 // Using process.cwd() makes the path consistent when running from different working dirs.
 app.use(

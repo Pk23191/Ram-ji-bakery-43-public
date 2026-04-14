@@ -3,7 +3,8 @@ const { readJson, writeJson } = require("../utils/fileStore");
 const { uploadImageBuffer, getCloudinaryConfigError } = require("../config/cloudinary");
 
 const PRODUCTS_FILE = path.join(__dirname, "..", "data", "products.json");
-const CACHE_TTL_MS = 30 * 1000;
+// Increase cache TTL for product list to reduce file I/O and URL-fixing work
+const CACHE_TTL_MS = 5 * 60 * 1000;
 let cachedProducts = null;
 let cachedAt = 0;
 
@@ -182,17 +183,24 @@ function makeAbsoluteUrl(value = "") {
 
 async function getProducts(req, res) {
   try {
-    const category = normalizeCategory(req.query.category);
-    const cached = getCachedProducts();
-    const products = cached || (await readJson(PRODUCTS_FILE, []));
-    if (!cached) {
-      setProductCache(products);
-    }
-    // Fix stored image URLs that point to localhost so deployed site shows images.
-    const apiRoot = (process.env.PUBLIC_API_URL || `${req.protocol}://${req.get("host")}/api`).replace(/\/api\/?$/, "").replace(/\/$/, "");
-    const fixedProducts = products.map((product) => {
-      const p = { ...product };
-      const fixUrl = (val) => {
+      const category = normalizeCategory(req.query.category);
+      const cached = getCachedProducts();
+      // If cached fixed products exist use them.
+      if (cached) {
+        const filtered = category
+          ? cached.filter((product) => getCategoryAliases(category).includes(product.category))
+          : cached;
+
+        return res.json(filtered);
+      }
+
+      // Read raw products and compute fixedProducts once, then cache the fixed list.
+      const rawProducts = await readJson(PRODUCTS_FILE, []);
+      // Fix stored image URLs that point to localhost so deployed site shows images.
+      const apiRoot = (process.env.PUBLIC_API_URL || `${req.protocol}://${req.get("host")}/api`).replace(/\/api\/?$/, "").replace(/\/$/, "");
+      const fixedProducts = rawProducts.map((product) => {
+        const p = { ...product };
+        const fixUrl = (val) => {
         if (!val) return val;
         try {
           const s = String(val).trim();
@@ -228,9 +236,27 @@ async function getProducts(req, res) {
       p.images = Array.isArray(p.images) ? p.images.map(fixUrl) : p.images;
       return p;
     });
-    const filtered = category
-      ? fixedProducts.filter((product) => getCategoryAliases(category).includes(product.category))
-      : fixedProducts;
+      let filtered = category
+        ? fixedProducts.filter((product) => getCategoryAliases(category).includes(product.category))
+        : fixedProducts;
+
+      // Basic pagination support to avoid returning huge payloads
+      const limit = Math.max(0, parseInt(String(req.query.limit || "")) || 0);
+      const page = Math.max(1, parseInt(String(req.query.page || "")) || 1);
+
+      // Cache the fixed products for subsequent requests
+      setProductCache(fixedProducts);
+
+      if (limit > 0) {
+        const start = (page - 1) * limit;
+        const paged = filtered.slice(start, start + limit);
+        res.set("Cache-Control", "public, max-age=300");
+        return res.json({ items: paged, total: filtered.length, page, limit });
+      }
+
+      // Default: set cache header and return full list
+      res.set("Cache-Control", "public, max-age=300");
+      return res.json(filtered);
 
     return res.json(filtered);
   } catch (error) {
