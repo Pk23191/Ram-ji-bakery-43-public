@@ -13,7 +13,6 @@ const links = [
   { href: "/orders", label: "Orders" },
   { href: "/account", label: "My Account" },
   { href: "/customize-cake", label: "Customize Cake" },
-  { href: "/antigravity", label: "Antigravity" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" }
 ];
@@ -39,7 +38,6 @@ export default function Navbar() {
           <Link href="/menu" className="hover:text-caramel transition">Menu</Link>
           <Link href="/cakes" className="hover:text-caramel transition">Cakes</Link>
           <Link href="/party" className="hover:text-caramel transition">Party</Link>
-          <Link href="/antigravity" className="hover:text-caramel transition">Antigravity</Link>
           <Link href="/about" className="hover:text-caramel transition">About</Link>
         </nav>
 

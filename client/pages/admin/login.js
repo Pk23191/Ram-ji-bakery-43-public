@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import Seo from "../../components/Seo";
 import { useShop } from "../../context/ShopContext";
