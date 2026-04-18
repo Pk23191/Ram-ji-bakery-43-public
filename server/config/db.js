@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const DEFAULT_URI = "mongodb://127.0.0.1:27017/ramji-bakery";
+const DEFAULT_URI = ""; // Must be provided via MONGO_URI env var in production
 let listenersAttached = false;
 
 function isValidMongoUri(value) {
