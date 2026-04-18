@@ -1,12 +1,3 @@
-const express = require("express");
-const app = express();
-
-const PORT = process.env.PORT || 10000;
-
-app.get("/", (req, res) => {
-  res.send("Ram ji bakery server running 🚀");
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Delegate to the actual backend entry point
+// This ensures Render can run `node server.js` from the project root
+require("./server/server.js");
