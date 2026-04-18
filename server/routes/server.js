@@ -174,7 +174,7 @@ app.use((error, req, res, next) => {
   res.status(status).json({ ok: false, message });
 });
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 10000;
 const ADMINS_FILE = path.join(__dirname, "..", "data", "admins.json");
 
 async function ensureDefaultAdmin() {
@@ -290,6 +290,15 @@ async function startServer() {
     closeServerAndExit(1);
   });
 }
+
+// Prevent silent crashes in production
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+  closeServerAndExit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED REJECTION:", reason);
+});
 
 registerShutdownHandlers();
 startServer();

@@ -257,8 +257,6 @@ async function getProducts(req, res) {
       // Default: set cache header and return full list
       res.set("Cache-Control", "public, max-age=300");
       return res.json(filtered);
-
-    return res.json(filtered);
   } catch (error) {
     console.error("Get products failed:", error);
     return res.status(500).json({ message: "Unable to load products" });
