@@ -22,7 +22,7 @@ let isInitialConnection = true;
 mongoose.set("bufferCommands", false);
 
 async function connectDB() {
-  const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  const uri = process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb+srv://mk3559875_db_user:Piyush23191@cluster0.wivxpyh.mongodb.net/ramjibakery?retryWrites=true&w=majority";
 
   if (!uri) {
     console.error("❌ FATAL: MONGO_URI is missing. Please check your .env file.");
@@ -38,8 +38,7 @@ async function connectDB() {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     serverSelectionTimeoutMS: 10000, // Give it 10 seconds to find the server
-    socketTimeoutMS: 45000,
-    family: 4, // Force IPv4 to avoid some local networking issues
+    socketTimeoutMS: 45000
   };
 
   try {
@@ -64,11 +63,11 @@ async function connectDB() {
     }
 
     await mongoose.connect(uri, options);
-    console.log("✅ SUCCESS: Database has connected! Products should load now.");
+    console.log("MongoDB Connected");
     isInitialConnection = false;
     return true;
   } catch (err) {
-    console.error("❌ CONNECTION FAILED:", err.message);
+    console.error("MongoDB Error:", err);
     
     // Actionable advice for the user
     if (err.message.includes("SSL") || err.message.includes("handshake") || err.message.includes("80")) {

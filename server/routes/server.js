@@ -130,7 +130,7 @@ app.get("/api/test-db-full", async (req, res) => {
   try {
     const readyState = mongoose.connection.readyState;
     if (readyState !== 1) {
-      return res.json({ ok: false, dbConnected: false, readyState, message: "DB is not connected" });
+      return res.json({ connected: false, readyState });
     }
 
     const db = mongoose.connection.db;
@@ -145,10 +145,8 @@ app.get("/api/test-db-full", async (req, res) => {
     }
 
     res.json({
-      ok: true,
-      dbConnected: true,
-      readyState,
-      collections: stats
+      connected: true,
+      readyState: 1
     });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
