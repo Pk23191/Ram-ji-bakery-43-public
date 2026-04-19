@@ -35,8 +35,6 @@ async function connectDB() {
   }
 
   const options = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     serverSelectionTimeoutMS: 10000, // Give it 10 seconds to find the server
     socketTimeoutMS: 45000
   };
