@@ -5,7 +5,7 @@ const nextConfig = {
       // Development: localhost HTTP
       { protocol: "http", hostname: "localhost", pathname: "/**" },
       // Production backend on Render
-      { protocol: "https", hostname: "ram-ji-bakery23.onrender.com", pathname: "/**" },
+      { protocol: "https", hostname: "ram-ji-bakery-43-public.onrender.com", pathname: "/**" },
       // Alternative production backend (your-backend-domains)
       { protocol: "https", hostname: "bakery-api.onrender.com", pathname: "/**" },
       // Cloudinary
@@ -27,13 +27,13 @@ const nextConfig = {
         source: '/api/:path*',
         destination: process.env.NODE_ENV === 'development' 
           ? 'http://localhost:5000/api/:path*' 
-          : 'https://ram-ji-bakery23.onrender.com/api/:path*'
+          : 'https://ram-ji-bakery-43-public.onrender.com/api/:path*'
       },
       {
         source: '/uploads/:path*',
         destination: process.env.NODE_ENV === 'development' 
           ? 'http://localhost:5000/uploads/:path*' 
-          : 'https://ram-ji-bakery23.onrender.com/uploads/:path*'
+          : 'https://ram-ji-bakery-43-public.onrender.com/uploads/:path*'
       }
     ]
   }

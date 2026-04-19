@@ -65,8 +65,7 @@ app.use("/api/auth", authLimiter);
 
 // Core middleware for API requests and media uploads.
 const allowedOrigins = [
-  "https://www.ramjibakery.in",
-  "https://ramjibakery.in",
+  "https://ram-ji-bakery-43-public.vercel.app",
   process.env.FRONTEND_URL,
   process.env.PUBLIC_STORE_URL
 ].filter(Boolean);
@@ -176,7 +175,7 @@ app.use((req, res) => {
   }
 
   // For browser navigation requests, redirect to the frontend store URL so Next.js can handle client routing.
-  const frontendUrl = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://www.ramjibakery.in";
+  const frontendUrl = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery-43-public.vercel.app";
 
   if (req.accepts("html")) {
     const isLocal = req.hostname === "localhost" || req.hostname === "127.0.0.1";

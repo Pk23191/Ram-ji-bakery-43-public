@@ -14,7 +14,7 @@ const getBaseURL = () => {
     }
   }
 
-  return "https://ram-ji-bakery23.onrender.com/api";
+  return "https://ram-ji-bakery-43-public.onrender.com/api";
 };
 
 const baseURL = getBaseURL().replace(/\/+$/, "");
