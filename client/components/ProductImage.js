@@ -25,10 +25,12 @@ export default function ProductImage({ src, alt, fill, width, height, className,
 
     // If it's a relative path from backend
     if (!str.startsWith("http") && !str.startsWith("data:")) {
-      const apiURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      const origin = apiURL.replace(/\/api\/?$/, "");
+      const apiURL = process.env.NEXT_PUBLIC_API_URL || "";
+      const origin = apiURL.replace(/\/api\/?$/, "").replace(/\/$/, "");
       const cleanPath = str.startsWith("/") ? str : `/${str}`;
-      return `${origin}${cleanPath}`;
+      
+      // If we have an origin, prepend it. Otherwise use the relative path directly (works via Vercel rewrites)
+      return origin ? `${origin}${cleanPath}` : cleanPath;
     }
     return str;
   };

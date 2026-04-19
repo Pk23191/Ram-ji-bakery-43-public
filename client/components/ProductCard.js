@@ -24,7 +24,7 @@ export default function ProductCard({ product }) {
       className="flex flex-col h-full bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow p-3 md:rounded-2xl md:shadow-md md:p-4 overflow-hidden"
     >
       {/* Image Container */}
-      <div className="w-full overflow-hidden rounded-xl relative group bg-latte/10">
+      <Link href={`/product/${product.id || product._id}`} className="w-full overflow-hidden rounded-xl relative group bg-latte/10">
         <div className="relative w-full aspect-square">
           <ProductImage 
             src={product.image} 
@@ -47,13 +47,15 @@ export default function ProductCard({ product }) {
             {product.badge}
           </div>
         )}
-      </div>
+      </Link>
 
       {/* Content */}
       <div className="flex-1 flex flex-col mt-3 md:mt-4">
-        <h2 className="text-sm font-semibold text-cocoa line-clamp-2 min-h-[2.5rem] md:text-base leading-tight">
-          {product.name}
-        </h2>
+        <Link href={`/product/${product.id || product._id}`}>
+          <h2 className="text-sm font-semibold text-cocoa line-clamp-2 min-h-[2.5rem] md:text-base leading-tight hover:text-caramel transition-colors">
+            {product.name}
+          </h2>
+        </Link>
 
         {/* Rating */}
         {product.rating && (
@@ -93,14 +95,12 @@ export default function ProductCard({ product }) {
           Add to Cart
         </button>
 
-        {showPartyDetails && (
-          <Link 
-            href={`/party/${product.id || product._id}`} 
-            className="w-full bg-latte/50 text-cocoa py-2 rounded-xl font-semibold text-sm transition hover:bg-latte text-center"
-          >
-            View Details
-          </Link>
-        )}
+        <Link 
+          href={`/product/${product.id || product._id}`} 
+          className="w-full bg-latte/50 text-cocoa py-2 rounded-xl font-semibold text-sm transition hover:bg-latte text-center"
+        >
+          View Details
+        </Link>
       </div>
     </motion.div>
   );

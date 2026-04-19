@@ -1,7 +1,12 @@
 const mongoose = require("mongoose");
+const dns = require("dns");
 
-const DEFAULT_URI = ""; // Must be provided via MONGO_URI env var in production
-let listenersAttached = false;
+// Increase reliability of SRV resolution on some networks
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+} catch (e) {
+  console.warn("DNS setServers failed, using system defaults");
+}
 
 function isValidMongoUri(value) {
   return /^mongodb(\+srv)?:\/\//i.test(value);
@@ -11,67 +16,83 @@ function sanitizeMongoUri(value = "") {
   return value.replace(/\/\/(.*)@/g, "//****@");
 }
 
+let isInitialConnection = true;
+
+// Disable Mongoose buffering so that we get immediate errors instead of hanging
 mongoose.set("bufferCommands", false);
-mongoose.set("bufferTimeoutMS", 8000);
 
 async function connectDB() {
-  const uri = process.env.MONGO_URI || process.env.MONGODB_URI || DEFAULT_URI;
-  const fallbackUri = process.env.MONGODB_URI_FALLBACK || "";
+  const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
-  if (!uri || (process.env.MONGODB_URI && !isValidMongoUri(uri))) {
-    console.error(
-      "MongoDB configuration error: MONGODB_URI must start with mongodb:// or mongodb+srv://"
-    );
-    throw new Error("Invalid MONGO_URI");
+  if (!uri) {
+    console.error("❌ FATAL: MONGO_URI is missing. Please check your .env file.");
+    process.exit(1);
   }
 
-  if (!listenersAttached) {
-    mongoose.connection.on("connected", () => {
-      console.log("MongoDB connected");
-    });
-    mongoose.connection.on("error", (error) => {
-      console.error("MongoDB connection error:", error.message);
-    });
-    mongoose.connection.on("disconnected", () => {
-      console.warn("MongoDB disconnected");
-    });
-    listenersAttached = true;
+  if (!isValidMongoUri(uri)) {
+    console.error("❌ FATAL: MONGO_URI format is invalid.");
+    process.exit(1);
   }
+
+  const options = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 10000, // Give it 10 seconds to find the server
+    socketTimeoutMS: 45000,
+    family: 4, // Force IPv4 to avoid some local networking issues
+  };
 
   try {
-    console.log(`MongoDB connecting to ${sanitizeMongoUri(uri)}`);
-    console.log(`MongoDB readyState (before connect): ${mongoose.connection.readyState}`);
-    const conn = await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 8000,
-      socketTimeoutMS: 8000
-    });
-    if (conn?.connection?.host) {
-      console.log(`MongoDB Connected: ${conn.connection.host}`);
+    if (isInitialConnection) {
+      console.log(`📡 CONNECTION ATTEMPT: ${sanitizeMongoUri(uri)}`);
     }
-    console.log(`MongoDB readyState (after connect): ${mongoose.connection.readyState}`);
-    return true;
-  } catch (error) {
-    console.error("MongoDB connection failed:", error);
-    const isSrvUri = uri.startsWith("mongodb+srv://");
-    if (isSrvUri && fallbackUri) {
-      try {
-        console.warn("Retrying MongoDB connection with fallback standard URI...");
-        const fallbackConn = await mongoose.connect(fallbackUri, {
-          serverSelectionTimeoutMS: 8000,
-          socketTimeoutMS: 8000
+    
+    // Explicitly check for SRV issues
+    if (uri.startsWith("mongodb+srv://")) {
+      const host = uri.split("@")[1]?.split("/")[0]?.split("?")[0];
+      if (host) {
+        dns.resolveSrv(`_mongodb._tcp.${host}`, (dnsErr, addresses) => {
+          if (dnsErr) {
+            console.error("🔍 DNS DIAGNOSTIC: Failed to resolve SRV record for your Atlas cluster.");
+            console.error("   This often means your DNS provider (ISP) is blocking SRV records.");
+            console.error("   ACTION: Try using the 'Standard' connection string from Atlas (starts with mongodb:// instead of mongodb+srv://)");
+          } else {
+            console.log("🔍 DNS DIAGNOSTIC: SRV records resolved correctly.");
+          }
         });
-        if (fallbackConn?.connection?.host) {
-          console.log(`MongoDB Connected: ${fallbackConn.connection.host}`);
-        }
-        return true;
-      } catch (fallbackError) {
-        console.error("MongoDB fallback connection failed:", fallbackError);
       }
-    } else if (isSrvUri && !fallbackUri) {
-      console.warn("Set MONGODB_URI_FALLBACK to your standard mongodb:// URI if SRV DNS fails.");
     }
-    throw error;
+
+    await mongoose.connect(uri, options);
+    console.log("✅ SUCCESS: Database has connected! Products should load now.");
+    isInitialConnection = false;
+    return true;
+  } catch (err) {
+    console.error("❌ CONNECTION FAILED:", err.message);
+    
+    // Actionable advice for the user
+    if (err.message.includes("SSL") || err.message.includes("handshake") || err.message.includes("80")) {
+      console.error("🚨 CRITICAL: Your connection was rejected by MongoDB Atlas.");
+      console.error("👉 CAUSE: Your IP Address is likely NOT WHITELISTED.");
+      console.error("👉 FIX: Go to Atlas -> Network Access -> Add IP -> Choose 'Allow Access from Anywhere' (0.0.0.0/0).");
+    } else if (err.message.includes("authentication failed")) {
+      console.error("🚨 CRITICAL: Invalid Username or Password in MONGO_URI.");
+      console.error("👉 FIX: Verify your database user credentials in Atlas dashboard.");
+    } else if (err.message.includes("timeout")) {
+      console.error("🚨 CRITICAL: Connection timed out.");
+      console.error("👉 CAUSE: Potential firewall blocking port 27017 or slow network.");
+    }
+
+    // Attempt retry
+    console.log("🔄 Retrying in 5 seconds...");
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    return connectDB();
   }
 }
+
+// State Monitoring
+mongoose.connection.on("disconnected", () => {
+  console.warn("⚠️  DB Link Lost. Reconnecting...");
+});
 
 module.exports = connectDB;

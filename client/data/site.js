@@ -64,7 +64,7 @@ export const getImageUrl = (image = "") => {
     const apiBase =
       process.env.NEXT_PUBLIC_API_URL ||
       process.env.VITE_API_URL ||
-      "https://ram-ji-bakery23.onrender.com/api";
+      "https://ram-ji-bakery-43-public.onrender.com/api";
     const backendBase = apiBase.replace(/\/api\/?$/, "");
     return `${backendBase}${value}`;
   }
@@ -90,12 +90,16 @@ export const normalizeProduct = (product = {}) => {
 
   const discountPercent = Number(product.discountPercent || 0);
   const normalizedDiscount = Number.isFinite(discountPercent) ? Math.min(Math.max(discountPercent, 0), 90) : 0;
-  const basePrice = Number(product.price || 0);
+  const baseName = String(product.name || product.title || "").trim();
+  const basePrice = Number(product.price || product.cost || 0);
+
   const finalPrice =
     normalizedDiscount > 0 ? Number((basePrice - (basePrice * normalizedDiscount) / 100).toFixed(2)) : basePrice;
 
   return {
     ...product,
+    name: baseName,
+    price: basePrice,
     category: normalizeCategory(product.category),
     image: images[0] || image,
     images: (images.length ? images : [image]).filter(Boolean).slice(0, 4),

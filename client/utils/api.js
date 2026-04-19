@@ -9,20 +9,20 @@ const getBaseURL = () => {
 
   // Fallback for local development
   if (typeof window !== "undefined") {
-    if (window.location.hostname.includes("vercel.app")) {
-      return "/api"; // Vercel proxy
+    if (window.location.hostname.includes("vercel.app") || window.location.hostname.includes("localhost")) {
+      return "/api"; // Leverage Vercel/NextJS rewrites for everything to avoid CORS issues
     }
-    return "http://localhost:5000/api";
   }
 
-  return "http://localhost:5000/api";
+  return "https://ram-ji-bakery-43-public.onrender.com/api";
 };
 
 const baseURL = getBaseURL().replace(/\/+$/, "");
 
 const api = axios.create({
   baseURL,
-  timeout: 30000
+  timeout: 30000,
+  withCredentials: true
 });
 
 // Helper used by admin UI to set global auth header for admin requests.

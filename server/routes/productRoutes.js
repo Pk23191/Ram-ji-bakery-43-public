@@ -10,7 +10,7 @@ const {
   createProduct,
   updateProduct,
   deleteProduct
-} = require("../controllers/productController");
+} = require("../controllers/mongooseProductController");
 
 const router = express.Router();
 // Accept any file fields so frontend can send either `image` or `images`.

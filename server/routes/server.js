@@ -11,23 +11,23 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const mongoSanitize = require("express-mongo-sanitize");
 const mongoose = require("mongoose");
+const cookieParser = require("cookie-parser");
 
 const connectDB = require("../config/db");
 const contactRoutes = require("./contactRoutes");
 const productRoutes = require("./productRoutes");
-const fileAuthRoutes = require("./fileAuthRoutes");
-const fileOrderRoutes = require("./fileOrderRoutes");
-const fileAdminRoutes = require("./fileAdminRoutes");
-const fileReviewRoutes = require("./fileReviewRoutes");
-const fileDashboardRoutes = require("./fileDashboardRoutes");
-const fileUserRoutes = require("./fileUserRoutes");
-const fileCouponRoutes = require("./fileCouponRoutes");
+const authRoutes = require("./authRoutes");
+const orderRoutes = require("./orderRoutes");
+const adminRoutes = require("./adminRoutes");
+const reviewRoutes = require("./reviewRoutes");
+const dashboardRoutes = require("./dashboardRoutes");
+const userRoutes = require("./userRoutes");
+const couponRoutes = require("./settingsRoutes");
 const { getCloudinaryConfigError } = require("../config/cloudinary");
 const uploadRoutes = require("./upload");
 const uploadLegacyRoutes = require("./uploadRoutes");
 const bannerRoutes = require("./bannerRoutes");
 const imageRoutes = require("./imageRoutes");
-const { readJson, writeJson } = require("../utils/fileStore");
 
 const app = express();
 let server;
@@ -66,8 +66,6 @@ app.use("/api/auth", authLimiter);
 // Core middleware for API requests and media uploads.
 const allowedOrigins = [
   "https://ram-ji-bakery-43-public.vercel.app",
-  "https://ram-ji-bakery23.vercel.app",
-  "https://ram-ji-bakery.vercel.app",
   process.env.FRONTEND_URL,
   process.env.PUBLIC_STORE_URL
 ].filter(Boolean);
@@ -98,6 +96,7 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(cookieParser());
 // Enable gzip/deflate compression for API responses to reduce payload size
 app.use(compression());
 // Serve uploaded static files from the project root `uploads/` directory.
@@ -110,13 +109,13 @@ app.use(
 // API route registration.
 app.use("/api/contact", contactRoutes);
 app.use("/api/products", productRoutes);
-app.use("/api/auth", fileAuthRoutes);
-app.use("/api", fileOrderRoutes);
-app.use("/api/admin", fileAdminRoutes);
-app.use("/api/reviews", fileReviewRoutes);
-app.use("/api/dashboard", fileDashboardRoutes);
-app.use("/api/users", fileUserRoutes);
-app.use("/api/coupons", fileCouponRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api", orderRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/coupons", couponRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/uploads", uploadLegacyRoutes);
 app.use("/api/banner", bannerRoutes);
@@ -127,13 +126,38 @@ app.get("/api/health", (req, res) => {
   res.json({ ok: true, service: "Ramji Bakery API", dbConnected: readyState === 1, readyState });
 });
 
+app.get("/api/test-db-full", async (req, res) => {
+  try {
+    const readyState = mongoose.connection.readyState;
+    if (readyState !== 1) {
+      return res.json({ ok: false, dbConnected: false, readyState, message: "DB is not connected" });
+    }
+
+    const db = mongoose.connection.db;
+    const collections = await db.listCollections().toArray();
+    const stats = {};
+
+    for (const coll of collections) {
+      stats[coll.name] = {
+        count: await db.collection(coll.name).countDocuments(),
+        sample: await db.collection(coll.name).findOne()
+      };
+    }
+
+    res.json({
+      ok: true,
+      dbConnected: true,
+      readyState,
+      collections: stats
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 app.get("/api/test-db", (req, res) => {
   const readyState = mongoose.connection.readyState;
-  res.json({
-    ok: readyState === 1,
-    dbConnected: readyState === 1,
-    readyState
-  });
+  res.json({ ok: readyState === 1, dbConnected: readyState === 1, readyState });
 });
 
 app.use(["/api/settings"], (req, res) => {
@@ -176,11 +200,11 @@ app.use((error, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 10000;
-const ADMINS_FILE = path.join(__dirname, "..", "data", "admins.json");
 
 async function ensureDefaultAdmin() {
   try {
-    const admins = await readJson(ADMINS_FILE, []);
+    const Admin = require("../models/Admin");
+    const admins = await Admin.find({});
     if (admins.length) return;
 
     const email = process.env.ADMIN_EMAIL || "admin@ramjibakery.in";
@@ -188,20 +212,17 @@ async function ensureDefaultAdmin() {
     const role = ["admin", "superadmin"].includes(process.env.ADMIN_ROLE) ? process.env.ADMIN_ROLE : "superadmin";
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const admin = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    await Admin.create({
       email,
       password: passwordHash,
-      role,
-      createdAt: new Date().toISOString()
-    };
-
-    await writeJson(ADMINS_FILE, [admin]);
-    console.log(`Admin seeded: ${email} (${role})`);
+      role
+    });
+    console.log(`Admin seeded in Mongo: ${email} (${role})`);
   } catch (error) {
-    console.error("Admin seed failed:", error);
+    console.error("Admin mongo seed failed:", error);
   }
 }
+
 function closeServerAndExit(exitCode = 0) {
   if (!server) {
     process.exit(exitCode);
@@ -243,22 +264,26 @@ async function startServer() {
     }
   }
 
-  await ensureDefaultAdmin();
-
-  try {
-    await connectDB();
-  } catch (error) {
-    console.error("MongoDB connection failed. Image persistence will be unavailable until this is fixed.");
-  }
+  // Attempt to connect to MongoDB in the background.
+  // The connectDB function now handles its own infinite retry loop.
+  connectDB()
+    .then(async () => {
+      // Background initialization after successful connection
+      if (mongoose.connection.readyState === 1) {
+        await ensureDefaultAdmin();
+      }
+    })
+    .catch((error) => {
+      // This catch is mostly a safety net as connectDB internally retries
+      console.error("🔥 Global MongoDB Connection Blocker:", error.message);
+    });
 
   const cloudinaryError = getCloudinaryConfigError();
   if (cloudinaryError) {
-    console.warn("⚠️  WARNING:", cloudinaryError, "Product image uploads will fail until this is fixed.");
-  } else {
-    console.log("Cloudinary configured successfully.");
+    console.warn("⚠️  Cloudinary Warning:", cloudinaryError);
   }
 
-  // --- Setup Env Validations ---
+  // --- Strict Env Validations ---
   const requiredEnv = [
     "MONGO_URI",
     "JWT_SECRET",
@@ -267,13 +292,18 @@ async function startServer() {
     "CLOUDINARY_API_SECRET"
   ];
 
+  let hasMissingEnv = false;
   requiredEnv.forEach((key) => {
     if (!process.env[key]) {
-      console.error(`❌ Missing ENV: ${key}`);
-    } else {
-      console.log(`✅ ENV OK: ${key}`);
+      console.error(`❌ CRITICAL MISSING ENV: ${key}`);
+      hasMissingEnv = true;
     }
   });
+
+  if (hasMissingEnv && process.env.NODE_ENV === "production") {
+    console.error("⚠️  WARNING: Missing required environment variables in production.");
+    console.error("⚠️  The server will continue to run for testing, but functionality will be degraded.");
+  }
 
   console.log("🚀 Server running");
   console.log("🌍 Mode:", process.env.NODE_ENV || "development");

@@ -1,11 +1,49 @@
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const Admin = require("../models/Admin");
-const Customer = require("../models/Customer");
 const User = require("../models/User");
+const Customer = require("../models/Customer");
 const Otp = require("../models/Otp");
 const { sendAccountEmail } = require("../utils/email");
+
+function normalizeEmail(email = "") {
+  return String(email).trim().toLowerCase();
+}
+
+function getSuperAdminConfig() {
+  return {
+    email: normalizeEmail(process.env.SUPERADMIN_EMAIL || "admin@ramjibakery.in"),
+    passwordPlain: String(process.env.SUPERADMIN_PASSWORD || "admin123").trim()
+  };
+}
+
+async function superLogin(req, res) {
+  try {
+    const email = normalizeEmail(req.body.email);
+    const password = String(req.body.password || "");
+    const { email: superEmail, passwordPlain } = getSuperAdminConfig();
+
+    if (email !== superEmail || password !== passwordPlain) {
+      return res.status(401).json({ message: "Invalid superadmin credentials" });
+    }
+
+    const token = jwt.sign(
+      { id: "superadmin-id", email: superEmail, role: "superadmin" },
+      process.env.JWT_SECRET || "ramji-bakery-dev-secret",
+      { expiresIn: "1d" }
+    );
+
+    return res.json({
+      token,
+      admin: { email: superEmail, role: "superadmin" }
+    });
+  } catch (error) {
+    console.error("Superadmin login failed:", error);
+    return res.status(500).json({ message: "Unable to login" });
+  }
+}
 
 const OTP_EXPIRY_MINUTES = 5;
 
@@ -44,6 +82,10 @@ function buildAppUrl(path = "") {
 async function login(req, res) {
   try {
     const { email, password } = req.body;
+    if (mongoose.connection.readyState !== 1) {
+      console.warn("Database connection state during admin login:", mongoose.connection.readyState);
+    }
+
     const admin = await Admin.findOne({ email });
 
     if (!admin) {
@@ -78,7 +120,11 @@ async function customerLogin(req, res) {
     const normalizedPhone = phone.trim();
     const normalizedName = name.trim();
 
-    const customer = await Customer.findOneAndUpdate(
+    if (mongoose.connection.readyState !== 1) {
+      console.warn("Database connection state during customer login:", mongoose.connection.readyState);
+    }
+
+    const customer = await User.findOneAndUpdate(
       { phone: normalizedPhone },
       { name: normalizedName, phone: normalizedPhone, role: "customer" },
       { new: true, upsert: true, setDefaultsOnInsert: true }
@@ -238,5 +284,6 @@ module.exports = {
   sendOtp,
   verifyOtp,
   verifyEmailFromQuery,
-  handleGoogleCallback
+  handleGoogleCallback,
+  superLogin
 };

@@ -1,7 +1,6 @@
 const express = require("express");
 const passport = require("passport");
 const {
-  login,
   customerLogin,
   sendOtp,
   verifyOtp,
@@ -9,8 +8,15 @@ const {
   handleGoogleCallback
 } = require("../controllers/authController");
 
+const {
+  registerUser,
+  loginUser,
+  requestPasswordReset,
+  resetPassword
+} = require("../controllers/userController");
+
 const router = express.Router();
-const googleFailureRedirect = `${process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery23.vercel.app"}/login?google=failed`;
+const googleFailureRedirect = `${process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery-43-public.vercel.app"}/login?google=failed`;
 const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
 function requireGoogleAuth(req, res, next) {
@@ -20,10 +26,14 @@ function requireGoogleAuth(req, res, next) {
   return next();
 }
 
-router.post("/login", login);
+router.post("/signup", registerUser);
+router.post("/login", loginUser);
+router.post("/admin-login", require("../controllers/authController").login);
 router.post("/customer-login", customerLogin);
 router.post("/send-otp", sendOtp);
 router.post("/verify-otp", verifyOtp);
+router.post("/forgot-password", requestPasswordReset);
+router.post("/reset-password", resetPassword);
 router.get("/verify-email", verifyEmailFromQuery);
 router.get(
   "/google",

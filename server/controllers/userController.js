@@ -10,12 +10,12 @@ const RESET_TOKEN_EXPIRY_MINUTES = 30;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function buildAppUrl(path = "") {
-  const base = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery.vercel.app";
+  const base = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery-43-public.vercel.app";
   return `${base}${path}`;
 }
 
 function buildApiUrl(path = "") {
-  const base = process.env.PUBLIC_API_URL || "https://ram-ji-bakery23.onrender.com/api";
+  const base = process.env.PUBLIC_API_URL || "https://ram-ji-bakery-43-public.onrender.com/api";
   return `${base}${path}`;
 }
 
@@ -64,6 +64,10 @@ async function registerUser(req, res) {
 
     if (password.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      console.warn("Database connection state during signup is:", mongoose.connection.readyState);
     }
 
     const existingUser = await User.findOne({ email });
@@ -125,6 +129,10 @@ async function loginUser(req, res) {
 
     if (!EMAIL_REGEX.test(email)) {
       return res.status(400).json({ message: "Please enter a valid email address" });
+    }
+
+    if (mongoose.connection.readyState !== 1) {
+      console.warn("Database connection state is:", mongoose.connection.readyState);
     }
 
     const user = await User.findOne({ email });

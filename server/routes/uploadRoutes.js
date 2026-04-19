@@ -2,9 +2,12 @@ const express = require("express");
 const { memoryUpload } = require("../utils/upload");
 const { uploadImages, uploadSingleImage, handleUploadError } = require("../controllers/uploadController");
 
+const auth = require("../middleware/auth");
+const adminMiddleware = require("../middleware/adminMiddleware");
+
 const router = express.Router();
 
-router.post("/products", (req, res, next) => {
+router.post("/products", auth, adminMiddleware, (req, res, next) => {
   memoryUpload.array("images", 4)(req, res, (error) => {
     if (error) {
       return handleUploadError(error, req, res, next);
@@ -14,7 +17,7 @@ router.post("/products", (req, res, next) => {
   });
 });
 
-router.post("/single", (req, res, next) => {
+router.post("/single", auth, adminMiddleware, (req, res, next) => {
   memoryUpload.single("image")(req, res, (error) => {
     if (error) {
       return handleUploadError(error, req, res, next);

@@ -21,6 +21,22 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   outputFileTracing: true,
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: process.env.NODE_ENV === 'development' 
+          ? 'http://localhost:5000/api/:path*' 
+          : 'https://ram-ji-bakery-43-public.onrender.com/api/:path*'
+      },
+      {
+        source: '/uploads/:path*',
+        destination: process.env.NODE_ENV === 'development' 
+          ? 'http://localhost:5000/uploads/:path*' 
+          : 'https://ram-ji-bakery-43-public.onrender.com/uploads/:path*'
+      }
+    ]
+  }
 };
 
 module.exports = nextConfig;

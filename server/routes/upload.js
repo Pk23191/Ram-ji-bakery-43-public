@@ -3,7 +3,10 @@ const router = express.Router();
 const { memoryUpload } = require("../utils/upload");
 const { uploadSingleImage, handleUploadError } = require("../controllers/uploadController");
 
-router.post("/upload", (req, res, next) => {
+const auth = require("../middleware/auth");
+const adminMiddleware = require("../middleware/adminMiddleware");
+
+router.post("/upload", auth, adminMiddleware, (req, res, next) => {
   memoryUpload.single("image")(req, res, (error) => {
     if (error) return handleUploadError(error, req, res, next);
     return uploadSingleImage(req, res, next);
@@ -11,7 +14,7 @@ router.post("/upload", (req, res, next) => {
 });
 
 // Alias: accept POST to '/api/upload' as well as '/api/upload/upload'
-router.post("/", (req, res, next) => {
+router.post("/", auth, adminMiddleware, (req, res, next) => {
   memoryUpload.single("image")(req, res, (error) => {
     if (error) return handleUploadError(error, req, res, next);
     return uploadSingleImage(req, res, next);

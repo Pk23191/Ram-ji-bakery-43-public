@@ -12,16 +12,16 @@ const productColorSchema = new mongoose.Schema(
 
 const productSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
+    name: { type: String, trim: true },
+    title: { type: String, trim: true }, // Internal alias for name
     category: {
       type: String,
       required: true,
-      enum: PRODUCT_CATEGORIES,
-      lowercase: true,
       trim: true
     },
     description: { type: String, default: "" },
-    price: { type: Number, required: true },
+    price: { type: Number },
+    cost: { type: Number }, // Internal alias for price
     image: { type: String, required: true },
     images: {
       type: [{ type: String, trim: true }],
