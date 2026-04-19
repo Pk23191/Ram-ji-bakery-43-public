@@ -4,11 +4,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://ram-ji-bakery-43-public.onrender.com/api/:path*"
+      "destination": "https://ram-ji-bakery-43-public-1.onrender.com/api/:path*"
     },
     {
       "source": "/uploads/:path*",
-      "destination": "https://ram-ji-bakery-43-public.onrender.com/uploads/:path*"
+      "destination": "https://ram-ji-bakery-43-public-1.onrender.com/uploads/:path*"
     }
   ]
 }
