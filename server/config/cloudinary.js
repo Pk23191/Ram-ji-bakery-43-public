@@ -4,6 +4,10 @@ const { v2: cloudinary } = require("cloudinary");
 
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
 
+process.env.CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "dxjhtsb2s";
+process.env.CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || "956249967932616";
+process.env.CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || "gZx0FQ2vHts9c1UxkMYFuHUEHmc";
+
 const REQUIRED_ENV_KEYS = [
   "CLOUDINARY_CLOUD_NAME",
   "CLOUDINARY_API_KEY",

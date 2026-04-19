@@ -285,9 +285,6 @@ async function startServer() {
 
   if (!process.env.MONGO_URI) process.env.MONGO_URI = "mongodb+srv://mk3559875_db_user:Piyush23191@cluster0.wivxpyh.mongodb.net/ramjibakery?retryWrites=true&w=majority";
   if (!process.env.JWT_SECRET) process.env.JWT_SECRET = "ramji_bakery_secret_key_123!";
-  if (!process.env.CLOUDINARY_CLOUD_NAME) process.env.CLOUDINARY_CLOUD_NAME = "demo";
-  if (!process.env.CLOUDINARY_API_KEY) process.env.CLOUDINARY_API_KEY = "demo";
-  if (!process.env.CLOUDINARY_API_SECRET) process.env.CLOUDINARY_API_SECRET = "demo";
 
   let hasMissingEnv = false;
 
