@@ -1,27 +1,6 @@
-const path = require("path");
-const { readJson, writeJson } = require("../utils/fileStore");
+const mongoose = require("mongoose");
+const Product = require("../models/Product");
 const { uploadImageBuffer, getCloudinaryConfigError } = require("../config/cloudinary");
-
-const PRODUCTS_FILE = path.join(__dirname, "..", "data", "products.json");
-const SAMPLE_PRODUCTS_FILE = path.join(__dirname, "..", "data", "products.sample.json");
-// Increase cache TTL for product list to reduce file I/O and URL-fixing work
-const CACHE_TTL_MS = 5 * 60 * 1000;
-let cachedProducts = null;
-let cachedAt = 0;
-
-function setProductCache(products) {
-  cachedProducts = Array.isArray(products) ? products : null;
-  cachedAt = Date.now();
-}
-
-function getCachedProducts() {
-  if (!cachedProducts) return null;
-  if (Date.now() - cachedAt > CACHE_TTL_MS) {
-    cachedProducts = null;
-    return null;
-  }
-  return cachedProducts;
-}
 
 function normalizeCategory(category = "") {
   const value = String(category).trim().toLowerCase();
@@ -41,32 +20,21 @@ function normalizeCategory(category = "") {
 function getCategoryAliases(category) {
   switch (category) {
     case "cake":
-      return ["cake", "cakes", "Cake", "Cakes"];
+      return ["cake", "cakes"];
     case "pastry":
-      return ["pastry", "pastries", "bread", "breads", "Pastry", "Pastries", "Bread", "Breads"];
+      return ["pastry", "pastries", "bread", "breads"];
     case "party":
-      return [
-        "party",
-        "birthday items",
-        "birthday item",
-        "birthday",
-        "decor",
-        "Party",
-        "Birthday Items",
-        "Birthday Item",
-        "Birthday",
-        "Decor"
-      ];
+      return ["party", "birthday items", "birthday item", "birthday", "decor"];
     case "balloons":
-      return ["balloons", "balloon", "Balloons", "Balloon"];
+      return ["balloons", "balloon"];
     case "ribbons":
-      return ["ribbons", "ribbon", "Ribbons", "Ribbon"];
+      return ["ribbons", "ribbon"];
     case "candles":
-      return ["candles", "candle", "Candles", "Candle"];
+      return ["candles", "candle"];
     case "hats":
-      return ["hats", "hat", "Hats", "Hat"];
+      return ["hats", "hat"];
     case "banners":
-      return ["banners", "banner", "Banners", "Banner"];
+      return ["banners", "banner"];
     default:
       return [];
   }
@@ -74,6 +42,7 @@ function getCategoryAliases(category) {
 
 function parseList(value) {
   if (Array.isArray(value)) return value;
+
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
@@ -82,19 +51,16 @@ function parseList(value) {
       return [];
     }
   }
+
   return [];
 }
 
 function parseMultiValue(value) {
-  if (Array.isArray(value)) {
-    return value;
-  }
+  if (Array.isArray(value)) return value;
 
   if (typeof value === "string") {
     const trimmed = value.trim();
-    if (!trimmed) {
-      return [];
-    }
+    if (!trimmed) return [];
 
     try {
       const parsed = JSON.parse(trimmed);
@@ -107,356 +73,254 @@ function parseMultiValue(value) {
   return [];
 }
 
-async function readProductsWithFallback() {
-  const products = await readJson(PRODUCTS_FILE, []);
-  if (Array.isArray(products) && products.length) {
-    return products;
+function makeAbsoluteUrl(value = "") {
+  const source = String(value || "").trim();
+  if (!source) return source;
+  if (/^https?:\/\//i.test(source) || source.startsWith("data:image/")) return source;
+
+  const backendBase = (process.env.BACKEND_URL || process.env.PUBLIC_API_URL || "")
+    .replace(/\/api\/?$/, "")
+    .replace(/\/$/, "");
+
+  if (source.startsWith("/uploads") || source.startsWith("uploads")) {
+    return backendBase ? `${backendBase}${source.startsWith("/") ? source : `/${source}`}` : source;
   }
 
-  const sampleProducts = await readJson(SAMPLE_PRODUCTS_FILE, []);
-  if (Array.isArray(sampleProducts) && sampleProducts.length) {
-    try {
-      await writeJson(PRODUCTS_FILE, sampleProducts);
-    } catch (error) {
-      console.error("Unable to seed products file from sample data:", error);
-    }
-
-    return sampleProducts;
-  }
-
-  return [];
+  return source;
 }
 
-async function uploadFilesToCloudinary(req, files = []) {
-  try {
-    const configError = getCloudinaryConfigError();
-    if (configError) {
-      throw new Error(configError);
-    }
+async function uploadFilesToCloudinary(files = []) {
+  if (!Array.isArray(files) || !files.length) {
+    return [];
+  }
 
-    if (!Array.isArray(files) || !files.length) return [];
-
-    const uploaded = await Promise.all(
-      files.map((file, index) =>
-        uploadImageBuffer(file.buffer, {
-          public_id: `product-${Date.now()}-${index + 1}`,
-          folder: "ramji-bakery/products",
-          transformation: [{ width: 400, crop: "scale", quality: "auto" }]
-        })
-      )
-    );
-
-    return uploaded.map((a) => a && a.secure_url).filter(Boolean);
-  } catch (error) {
+  const configError = getCloudinaryConfigError();
+  if (configError) {
+    const error = new Error(configError);
+    error.statusCode = 500;
     throw error;
   }
+
+  const uploaded = await Promise.all(
+    files.map((file, index) =>
+      uploadImageBuffer(file.buffer, {
+        public_id: `product-${Date.now()}-${index + 1}`,
+        folder: "ramji-bakery/products",
+        transformation: [{ width: 400, crop: "scale", quality: "auto" }]
+      })
+    )
+  );
+
+  return uploaded.map((item) => item?.secure_url).filter(Boolean);
 }
 
-function normalizeProductPayload(body = {}, options = {}) {
-  const {
-    uploadedImages = [],
-    existingImages = []
-  } = options;
-  const imageUrls = parseMultiValue(body.imageUrls)
-    .map((entry) => String(entry || "").trim())
+function buildProductPayload(body = {}, options = {}) {
+  const { uploadedImages = [], existingImages = [] } = options;
+  const bodyImageUrls = parseMultiValue(body.imageUrls)
+    .map((entry) => makeAbsoluteUrl(entry))
     .filter(Boolean);
-  const keptImages = existingImages
-    .map((entry) => String(entry || "").trim())
-    .filter(Boolean);
-  const normalizedImages = [...keptImages, ...uploadedImages, ...imageUrls].filter(Boolean).slice(0, 4);
+  const keepImages = existingImages.map((entry) => makeAbsoluteUrl(entry)).filter(Boolean);
+  const images = [...keepImages, ...uploadedImages, ...bodyImageUrls].slice(0, 4);
   const colors = parseList(body.colors)
     .map((entry) => ({
       name: String(entry?.name || "").trim(),
-      image: String(entry?.image || "").trim()
+      image: makeAbsoluteUrl(entry?.image || "")
     }))
     .filter((entry) => entry.name && entry.image);
 
   return {
-    ...body,
+    name: String(body.name || "").trim(),
     category: normalizeCategory(body.category),
-    // Ensure stored images are full URLs when possible to avoid broken links in production.
-    image: (normalizedImages[0] && makeAbsoluteUrl(normalizedImages[0])) || "",
-    images: normalizedImages.map((i) => makeAbsoluteUrl(i)),
-    colors,
-    description: body.description || "",
+    description: String(body.description || "").trim(),
     price: Number(body.price),
     discountPercent: Math.min(Math.max(Number(body.discountPercent || 0), 0), 90),
-    badge: body.badge || "Admin Added",
-    rating: Number(body.rating || 4.7)
+    image: images[0] || makeAbsoluteUrl(body.image || ""),
+    images,
+    colors,
+    badge: String(body.badge || "Admin Added").trim(),
+    rating: Number(body.rating || 4.7),
+    flavors: parseMultiValue(body.flavors).map((entry) => String(entry || "").trim()).filter(Boolean)
   };
 }
 
-function makeAbsoluteUrl(value = "") {
-  const s = String(value || "").trim();
-  if (!s) return s;
-  if (/^https?:\/\//i.test(s)) return s;
-
-  // If it's a relative uploads path, prefix with BACKEND_URL or PUBLIC_API_URL (without /api)
-  const backend = process.env.BACKEND_URL || process.env.PUBLIC_API_URL || "";
-  const backendRoot = String(backend).replace(/\/(?:api)?\/?$/, "").replace(/\/$/, "");
-  if (s.startsWith("/uploads") || s.startsWith("uploads")) {
-    return backendRoot ? `${backendRoot}${s.startsWith("/") ? s : `/${s}`}` : s;
+function ensureDatabaseReady() {
+  if (mongoose.connection.readyState !== 1) {
+    const error = new Error("Database not connected");
+    error.statusCode = 503;
+    throw error;
   }
-
-  // Otherwise, return as-is (could be a data URL or external hostless path)
-  return s;
 }
 
 async function getProducts(req, res) {
   try {
-      const category = normalizeCategory(req.query.category);
-      const cached = getCachedProducts();
-      // If cached fixed products exist use them.
-      if (cached) {
-        const filtered = category
-          ? cached.filter((product) => getCategoryAliases(category).includes(product.category))
-          : cached;
+    ensureDatabaseReady();
 
-        return res.json(filtered);
-      }
+    const category = normalizeCategory(req.query.category);
+    const limit = Math.max(0, Number.parseInt(String(req.query.limit || "0"), 10) || 0);
+    const page = Math.max(1, Number.parseInt(String(req.query.page || "1"), 10) || 1);
+    const filter = {};
 
-      // Read raw products and compute fixedProducts once, then cache the fixed list.
-      const rawProducts = await readProductsWithFallback();
-      // Fix stored image URLs that point to localhost so deployed site shows images.
-      const apiRoot = (process.env.PUBLIC_API_URL || `${req.protocol}://${req.get("host")}/api`).replace(/\/api\/?$/, "").replace(/\/$/, "");
-      const fixedProducts = rawProducts.map((product) => {
-        const p = { ...product };
-        const fixUrl = (val) => {
-        if (!val) return val;
-        try {
-          const s = String(val).trim();
+    if (category) {
+      filter.category = { $in: getCategoryAliases(category).length ? getCategoryAliases(category) : [category] };
+    }
 
-          // If absolute URL, only rewrite localhost/hosted-api paths to apiRoot.
-          if (/^https?:\/\//i.test(s)) {
-            try {
-              const parsed = new URL(s);
-              const hostHeader = req.get("host") || "";
-              const isLocalHost = /localhost|127\.0\.0\.1/i.test(parsed.hostname) || parsed.host === hostHeader;
-              if (isLocalHost) {
-                return `${apiRoot}/${parsed.pathname.replace(/^\/+/, "")}${parsed.search || ""}`;
-              }
-              // External URLs (e.g., Cloudinary) should be returned unchanged.
-              return s;
-            } catch (e) {
-              return s;
-            }
-          }
+    console.log("GET /api/products", { filter, page, limit });
 
-          // If it's a relative uploads path, prefix with apiRoot
-          if (s.startsWith("/uploads") || s.startsWith("uploads")) {
-            return `${apiRoot}/${s.replace(/^\/+/, "")}`;
-          }
+    const query = Product.find(filter).sort({ createdAt: -1 }).lean();
+    if (limit > 0) {
+      query.skip((page - 1) * limit).limit(limit);
+    }
 
-          return s;
-        } catch (e) {
-          return val;
-        }
-      };
+    const [items, total] = await Promise.all([query, Product.countDocuments(filter)]);
+    const products = items.map((product) => ({
+      ...product,
+      image: makeAbsoluteUrl(product.image),
+      images: Array.isArray(product.images) ? product.images.map((entry) => makeAbsoluteUrl(entry)) : []
+    }));
 
-      p.image = fixUrl(p.image);
-      p.images = Array.isArray(p.images) ? p.images.map(fixUrl) : p.images;
-      return p;
-    });
-      let filtered = category
-        ? fixedProducts.filter((product) => getCategoryAliases(category).includes(product.category))
-        : fixedProducts;
+    if (limit > 0) {
+      return res.json({ success: true, items: products, total, page, limit });
+    }
 
-      // Basic pagination support to avoid returning huge payloads
-      const limit = Math.max(0, parseInt(String(req.query.limit || "")) || 0);
-      const page = Math.max(1, parseInt(String(req.query.page || "")) || 1);
-
-      // Cache the fixed products for subsequent requests
-      setProductCache(fixedProducts);
-
-      if (limit > 0) {
-        const start = (page - 1) * limit;
-        const paged = filtered.slice(start, start + limit);
-        res.set("Cache-Control", "public, max-age=300");
-        return res.json({ items: paged, total: filtered.length, page, limit });
-      }
-
-      // Default: set cache header and return full list
-      res.set("Cache-Control", "public, max-age=300");
-      return res.json(filtered);
-
-    return res.json(filtered);
+    return res.json(products);
   } catch (error) {
     console.error("Get products failed:", error);
-    return res.status(500).json({ message: "Unable to load products" });
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Unable to load products"
+    });
   }
 }
 
 async function getProductById(req, res) {
   try {
-    const products = await readProductsWithFallback();
-    const product = products.find((item) => String(item._id) === String(req.params.id));
+    ensureDatabaseReady();
+
+    console.log("GET /api/products/:id", { id: req.params.id });
+    const product = await Product.findById(req.params.id).lean();
 
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    if (product) {
-      const apiRoot = (process.env.PUBLIC_API_URL || `${req.protocol}://${req.get("host")}/api`).replace(/\/api\/?$/, "").replace(/\/$/, "");
-      const fixUrl = (val) => {
-        if (!val) return val;
-        const s = String(val).trim();
-
-        if (/^https?:\/\//i.test(s)) {
-          try {
-            const parsed = new URL(s);
-            const hostHeader = req.get("host") || "";
-            const isLocalHost = /localhost|127\.0\.0\.1/i.test(parsed.hostname) || parsed.host === hostHeader;
-            if (isLocalHost) {
-              return `${apiRoot}/${parsed.pathname.replace(/^\/+/, "")}${parsed.search || ""}`;
-            }
-
-            return s;
-          } catch (e) {
-            return s;
-          }
-        }
-
-        if (s.startsWith("/uploads") || s.startsWith("uploads")) {
-          return `${apiRoot}/${s.replace(/^\/+/, "")}`;
-        }
-
-        return s;
-      };
-
-      const fixed = { ...product, image: fixUrl(product.image), images: Array.isArray(product.images) ? product.images.map(fixUrl) : product.images };
-      return res.json(fixed);
-    }
+    return res.json({
+      ...product,
+      image: makeAbsoluteUrl(product.image),
+      images: Array.isArray(product.images) ? product.images.map((entry) => makeAbsoluteUrl(entry)) : []
+    });
   } catch (error) {
     console.error("Get product failed:", error);
-    return res.status(500).json({ message: "Unable to load product" });
+    const status = error.name === "CastError" ? 404 : error.statusCode || 500;
+    const message = error.name === "CastError" ? "Product not found" : error.message || "Unable to load product";
+    return res.status(status).json({ success: false, message });
   }
 }
 
 async function createProduct(req, res) {
   try {
-    console.log("Create product payload:", {
-      name: req.body?.name,
-      category: req.body?.category,
-      price: req.body?.price
+    ensureDatabaseReady();
+
+    console.log("POST /api/products payload:", {
+      body: req.body,
+      files: Array.isArray(req.files) ? req.files.length : req.file ? 1 : 0
     });
-    console.log("FILES:", Array.isArray(req.files) ? req.files.map(f => ({fieldname: f.fieldname, originalname: f.originalname, size: f.size})) : req.files);
-    console.log("FILE:", req.file);
 
     const files = req.files || (req.file ? [req.file] : []);
+    const uploadedImages = await uploadFilesToCloudinary(files);
+    const payload = buildProductPayload(req.body, { uploadedImages });
 
-    let uploadedImages = [];
-    if (files.length) {
-      const configError = getCloudinaryConfigError();
-      if (configError) {
-        console.error("Cloudinary config error:", configError);
-        return res.status(400).json({
-          message: "Image upload failed. Check Cloudinary config."
-        });
-      }
-      uploadedImages = await uploadFilesToCloudinary(req, files);
+    if (!payload.name || !payload.category || !Number.isFinite(payload.price) || payload.price <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "name, category and a valid positive price are required"
+      });
     }
 
-    const payload = normalizeProductPayload(req.body, {
-      uploadedImages
+    if (!payload.image) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one product image is required"
+      });
+    }
+
+    const product = new Product(payload);
+    await product.save();
+
+    console.log("Product saved successfully:", { id: product._id.toString(), name: product.name });
+    return res.status(201).json({
+      success: true,
+      message: "Product created successfully",
+      product
     });
-
-    if (!payload.images.length) {
-      return res.status(400).json({ message: "Please add at least one product image." });
-    }
-
-    const products = await readProductsWithFallback();
-    const product = {
-      ...payload,
-      _id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    products.unshift(product);
-    await writeJson(PRODUCTS_FILE, products);
-    setProductCache(products);
-
-    return res.status(201).json(product);
   } catch (error) {
     console.error("Create product failed:", error);
-    const msg = error.message || "Unable to save product";
-    return res.status(500).json({ message: msg });
+    const status = error.name === "ValidationError" ? 400 : error.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: error.message || "Unable to save product"
+    });
   }
 }
 
 async function updateProduct(req, res) {
   try {
-    const products = await readProductsWithFallback();
-    const index = products.findIndex((item) => String(item._id) === String(req.params.id));
-    const currentProduct = index >= 0 ? products[index] : null;
+    ensureDatabaseReady();
 
-    if (!currentProduct) {
-      return res.status(404).json({ message: "Product not found" });
+    const existingProduct = await Product.findById(req.params.id);
+    if (!existingProduct) {
+      return res.status(404).json({ success: false, message: "Product not found" });
     }
-
-    const currentImages = parseMultiValue(req.body.existingImages);
 
     const files = req.files || (req.file ? [req.file] : []);
-    let uploadedImages = [];
-    if (files.length) {
-      const configError = getCloudinaryConfigError();
-      if (configError) {
-        console.error("Cloudinary config error:", configError);
-        return res.status(500).json({ message: configError });
-      }
-      uploadedImages = await uploadFilesToCloudinary(req, files);
-    }
-
-    const payload = normalizeProductPayload(
-      {
-        ...(currentProduct.toObject ? currentProduct.toObject() : currentProduct),
-        ...req.body
-      },
+    const uploadedImages = await uploadFilesToCloudinary(files);
+    const payload = buildProductPayload(
+      { ...existingProduct.toObject(), ...req.body },
       {
         uploadedImages,
-        existingImages: currentImages.length ? currentImages : currentProduct.images || []
+        existingImages: parseMultiValue(req.body.existingImages).length
+          ? parseMultiValue(req.body.existingImages)
+          : existingProduct.images || []
       }
     );
 
-    if (!payload.images.length) {
-      return res.status(400).json({ message: "Please keep or add at least one product image." });
-    }
+    Object.assign(existingProduct, payload);
+    await existingProduct.save();
 
-    const updatedProduct = {
-      ...currentProduct,
-      ...payload,
-      updatedAt: new Date().toISOString()
-    };
-    products[index] = updatedProduct;
-    await writeJson(PRODUCTS_FILE, products);
-    setProductCache(products);
-
-    return res.json(updatedProduct);
+    return res.json({
+      success: true,
+      message: "Product updated successfully",
+      product: existingProduct
+    });
   } catch (error) {
     console.error("Update product failed:", error);
-    const msg = error.message || "Unable to update product";
-    return res.status(500).json({ message: msg });
+    const status = error.name === "ValidationError" ? 400 : error.name === "CastError" ? 404 : error.statusCode || 500;
+    const message = error.name === "CastError" ? "Product not found" : error.message || "Unable to update product";
+    return res.status(status).json({ success: false, message });
   }
 }
 
 async function deleteProduct(req, res) {
   try {
-    const products = await readProductsWithFallback();
-    const index = products.findIndex((item) => String(item._id) === String(req.params.id));
-    const product = index >= 0 ? products[index] : null;
+    ensureDatabaseReady();
 
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+    const deletedProduct = await Product.findByIdAndDelete(req.params.id);
+    if (!deletedProduct) {
+      return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    products.splice(index, 1);
-    await writeJson(PRODUCTS_FILE, products);
-    setProductCache(products);
-
-    return res.json({ message: "Product deleted successfully" });
+    return res.json({ success: true, message: "Product deleted successfully" });
   } catch (error) {
     console.error("Delete product failed:", error);
-    return res.status(500).json({ message: "Unable to delete product" });
+    const status = error.name === "CastError" ? 404 : error.statusCode || 500;
+    const message = error.name === "CastError" ? "Product not found" : error.message || "Unable to delete product";
+    return res.status(status).json({ success: false, message });
   }
 }
 
-module.exports = { getProducts, getProductById, createProduct, updateProduct, deleteProduct };
+module.exports = {
+  getProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct
+};

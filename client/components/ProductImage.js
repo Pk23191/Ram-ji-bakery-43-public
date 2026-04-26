@@ -2,6 +2,8 @@ import Image from "next/image";
 import { useState } from "react";
 import { Loader2 } from 'lucide-react';
 
+const FALLBACK_IMAGE_URL = "https://res.cloudinary.com/demo/image/upload/sample.jpg";
+
 // Lightweight product image wrapper that prefers `fill` mode. IMPORTANT:
 // When `fill` is used, the caller MUST provide a parent with `position: relative`
 // and an intrinsic size (e.g. a Tailwind `aspect-[]` class). Do NOT wrap the
@@ -11,22 +13,40 @@ export default function ProductImage({ src, alt, fill, width, height, className,
   const [isLoading, setIsLoading] = useState(!priority);
 
   const normalize = (s) => {
-    if (!s) return null;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+    if (!s) return FALLBACK_IMAGE_URL;
     let str = String(s).trim().replace(/\\/g, "/"); // Fix Windows paths
-    if (!str) return null;
+    if (!str) return FALLBACK_IMAGE_URL;
     if (str.startsWith("data:image/")) return str;
     
-    // Don't force HTTPS for localhost as it breaks local dev
-    if (str.includes("localhost")) return str;
+    if (str.includes("localhost")) {
+      if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+        return str;
+      }
+
+      return FALLBACK_IMAGE_URL;
+    }
 
     // Ensure HTTPS for security
     if (str.startsWith("//")) return "https:" + str;
     if (str.startsWith("http:")) return str.replace(/^http:/, "https:");
 
+    if (str.startsWith("/uploads")) {
+      if (!API_URL) {
+        return FALLBACK_IMAGE_URL;
+      }
+
+      const origin = API_URL.replace(/\/api\/?$/, "");
+      return `${origin}${str}`;
+    }
+
     // If it's a relative path from backend
     if (!str.startsWith("http") && !str.startsWith("data:")) {
-      const apiURL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-      const origin = apiURL.replace(/\/api\/?$/, "");
+      if (!API_URL) {
+        return FALLBACK_IMAGE_URL;
+      }
+
+      const origin = API_URL.replace(/\/api\/?$/, "");
       const cleanPath = str.startsWith("/") ? str : `/${str}`;
       return `${origin}${cleanPath}`;
     }
@@ -40,7 +60,7 @@ export default function ProductImage({ src, alt, fill, width, height, className,
   };
 
   const resolved = normalize(src);
-  const imageSrc = fallback || (resolved && !isPlaceholderUrl(resolved) ? resolved : "/images/cake1.jpg");
+  const imageSrc = fallback || (resolved && !isPlaceholderUrl(resolved) ? resolved : FALLBACK_IMAGE_URL);
 
   if (process.env.NODE_ENV === "development") {
     // eslint-disable-next-line no-console
@@ -49,7 +69,7 @@ export default function ProductImage({ src, alt, fill, width, height, className,
 
   const handleError = () => {
     console.error("Image failed to load:", src);
-    setFallback("/images/cake1.jpg");
+    setFallback(FALLBACK_IMAGE_URL);
   };
 
   const handleLoad = () => {
