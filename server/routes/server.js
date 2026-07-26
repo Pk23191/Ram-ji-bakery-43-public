@@ -66,6 +66,8 @@ app.use("/api/auth", authLimiter);
 const allowedOrigins = [
   "https://ram-ji-bakery23.vercel.app",
   "https://ram-ji-bakery.vercel.app",
+    "https://ramjibakery.in",
+    "https://www.ramjibakery.in",
   process.env.FRONTEND_URL,
   process.env.PUBLIC_STORE_URL
 ].filter(Boolean);
@@ -299,3 +301,4 @@ async function startServer() {
 
 registerShutdownHandlers();
 startServer();
+
