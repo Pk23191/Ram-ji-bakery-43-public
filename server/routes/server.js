@@ -87,9 +87,13 @@ app.use(
       // Allow Vercel preview domains
       if (/\.vercel\.app$/.test(origin)) return cb(null, true);
 
+      // Allow all variants of ramjibakery.in
+      if (origin.includes("ramjibakery.in")) return cb(null, true);
+
       // Otherwise reject CORS (safer in production)
       return cb(new Error("CORS not allowed for origin: " + origin), false);
     },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Authorization"],
