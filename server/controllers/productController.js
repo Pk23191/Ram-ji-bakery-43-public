@@ -1,6 +1,9 @@
-const mongoose = require("mongoose");
-const Product = require("../models/Product");
+const path = require("path");
 const { uploadImageBuffer, getCloudinaryConfigError } = require("../config/cloudinary");
+const { readJson, writeJson } = require("../utils/fileStore");
+
+const PRODUCTS_FILE = path.join(__dirname, "..", "data", "products.json");
+const SAMPLE_PRODUCTS_FILE = path.join(__dirname, "..", "data", "products.sample.json");
 
 function normalizeCategory(category = "") {
   const value = String(category).trim().toLowerCase();
@@ -143,46 +146,69 @@ function buildProductPayload(body = {}, options = {}) {
   };
 }
 
-function ensureDatabaseReady() {
-  if (mongoose.connection.readyState !== 1) {
-    const error = new Error("Database not connected");
-    error.statusCode = 503;
-    throw error;
+function makeProductId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeStoredProduct(product = {}) {
+  const id = String(product._id || product.id || makeProductId());
+  const images = Array.isArray(product.images)
+    ? product.images.map((entry) => makeAbsoluteUrl(entry)).filter(Boolean)
+    : [];
+  const image = makeAbsoluteUrl(product.image || images[0] || "");
+
+  return {
+    ...product,
+    _id: id,
+    id,
+    category: normalizeCategory(product.category),
+    price: Number(product.price || 0),
+    discountPercent: Math.min(Math.max(Number(product.discountPercent || 0), 0), 90),
+    image,
+    images: images.length ? images : image ? [image] : [],
+    colors: Array.isArray(product.colors) ? product.colors : [],
+    flavors: Array.isArray(product.flavors) ? product.flavors : [],
+    rating: Number(product.rating || 4.7),
+    createdAt: product.createdAt || new Date().toISOString(),
+    updatedAt: product.updatedAt || product.createdAt || new Date().toISOString()
+  };
+}
+
+async function readProducts() {
+  const sampleProducts = await readJson(SAMPLE_PRODUCTS_FILE, []);
+  const products = await readJson(PRODUCTS_FILE, sampleProducts);
+  const normalizedProducts = products.map((product) => normalizeStoredProduct(product));
+
+  if (!products.length && sampleProducts.length) {
+    await writeProducts(normalizedProducts);
   }
+
+  return normalizedProducts;
+}
+
+async function writeProducts(products) {
+  await writeJson(PRODUCTS_FILE, products.map((product) => normalizeStoredProduct(product)));
 }
 
 async function getProducts(req, res) {
   try {
-    ensureDatabaseReady();
-
     const category = normalizeCategory(req.query.category);
     const limit = Math.max(0, Number.parseInt(String(req.query.limit || "0"), 10) || 0);
     const page = Math.max(1, Number.parseInt(String(req.query.page || "1"), 10) || 1);
-    const filter = {};
-
-    if (category) {
-      filter.category = { $in: getCategoryAliases(category).length ? getCategoryAliases(category) : [category] };
-    }
-
-    console.log("GET /api/products", { filter, page, limit });
-
-    const query = Product.find(filter).sort({ createdAt: -1 }).lean();
-    if (limit > 0) {
-      query.skip((page - 1) * limit).limit(limit);
-    }
-
-    const [items, total] = await Promise.all([query, Product.countDocuments(filter)]);
-    const products = items.map((product) => ({
-      ...product,
-      image: makeAbsoluteUrl(product.image),
-      images: Array.isArray(product.images) ? product.images.map((entry) => makeAbsoluteUrl(entry)) : []
-    }));
+    const categoryAliases = category ? getCategoryAliases(category) : [];
+    const filterCategories = categoryAliases.length ? categoryAliases : category ? [category] : [];
+    const allProducts = (await readProducts()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const products = filterCategories.length
+      ? allProducts.filter((product) => filterCategories.includes(normalizeCategory(product.category)))
+      : allProducts;
+    const total = products.length;
+    const items = limit > 0 ? products.slice((page - 1) * limit, (page - 1) * limit + limit) : products;
 
     if (limit > 0) {
-      return res.json({ success: true, items: products, total, page, limit });
+      return res.json({ success: true, items, total, page, limit });
     }
 
-    return res.json(products);
+    return res.json(items);
   } catch (error) {
     console.error("Get products failed:", error);
     return res.status(error.statusCode || 500).json({
@@ -194,40 +220,25 @@ async function getProducts(req, res) {
 
 async function getProductById(req, res) {
   try {
-    ensureDatabaseReady();
-
-    console.log("GET /api/products/:id", { id: req.params.id });
-    const product = await Product.findById(req.params.id).lean();
+    const products = await readProducts();
+    const product = products.find((item) => item._id === req.params.id || item.id === req.params.id);
 
     if (!product) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    return res.json({
-      ...product,
-      image: makeAbsoluteUrl(product.image),
-      images: Array.isArray(product.images) ? product.images.map((entry) => makeAbsoluteUrl(entry)) : []
-    });
+    return res.json(product);
   } catch (error) {
     console.error("Get product failed:", error);
-    const status = error.name === "CastError" ? 404 : error.statusCode || 500;
-    const message = error.name === "CastError" ? "Product not found" : error.message || "Unable to load product";
-    return res.status(status).json({ success: false, message });
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message || "Unable to load product" });
   }
 }
 
 async function createProduct(req, res) {
   try {
-    ensureDatabaseReady();
-
-    console.log("POST /api/products payload:", {
-      body: req.body,
-      files: Array.isArray(req.files) ? req.files.length : req.file ? 1 : 0
-    });
-
     const files = req.files || (req.file ? [req.file] : []);
     const uploadedImages = await uploadFilesToCloudinary(files);
-    const payload = buildProductPayload(req.body, { uploadedImages });
+    const payload = normalizeStoredProduct(buildProductPayload(req.body, { uploadedImages }));
 
     if (!payload.name || !payload.category || !Number.isFinite(payload.price) || payload.price <= 0) {
       return res.status(400).json({
@@ -243,10 +254,18 @@ async function createProduct(req, res) {
       });
     }
 
-    const product = new Product(payload);
-    await product.save();
+    const products = await readProducts();
+    const product = {
+      ...payload,
+      _id: makeProductId(),
+      id: "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    product.id = product._id;
+    products.unshift(product);
+    await writeProducts(products);
 
-    console.log("Product saved successfully:", { id: product._id.toString(), name: product.name });
     return res.status(201).json({
       success: true,
       message: "Product created successfully",
@@ -254,8 +273,7 @@ async function createProduct(req, res) {
     });
   } catch (error) {
     console.error("Create product failed:", error);
-    const status = error.name === "ValidationError" ? 400 : error.statusCode || 500;
-    return res.status(status).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Unable to save product"
     });
@@ -264,17 +282,17 @@ async function createProduct(req, res) {
 
 async function updateProduct(req, res) {
   try {
-    ensureDatabaseReady();
-
-    const existingProduct = await Product.findById(req.params.id);
-    if (!existingProduct) {
+    const products = await readProducts();
+    const index = products.findIndex((item) => item._id === req.params.id || item.id === req.params.id);
+    if (index < 0) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
+    const existingProduct = products[index];
     const files = req.files || (req.file ? [req.file] : []);
     const uploadedImages = await uploadFilesToCloudinary(files);
     const payload = buildProductPayload(
-      { ...existingProduct.toObject(), ...req.body },
+      { ...existingProduct, ...req.body },
       {
         uploadedImages,
         existingImages: parseMultiValue(req.body.existingImages).length
@@ -283,37 +301,41 @@ async function updateProduct(req, res) {
       }
     );
 
-    Object.assign(existingProduct, payload);
-    await existingProduct.save();
+    const product = normalizeStoredProduct({
+      ...existingProduct,
+      ...payload,
+      _id: existingProduct._id,
+      id: existingProduct.id || existingProduct._id,
+      createdAt: existingProduct.createdAt,
+      updatedAt: new Date().toISOString()
+    });
+    products[index] = product;
+    await writeProducts(products);
 
     return res.json({
       success: true,
       message: "Product updated successfully",
-      product: existingProduct
+      product
     });
   } catch (error) {
     console.error("Update product failed:", error);
-    const status = error.name === "ValidationError" ? 400 : error.name === "CastError" ? 404 : error.statusCode || 500;
-    const message = error.name === "CastError" ? "Product not found" : error.message || "Unable to update product";
-    return res.status(status).json({ success: false, message });
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message || "Unable to update product" });
   }
 }
 
 async function deleteProduct(req, res) {
   try {
-    ensureDatabaseReady();
-
-    const deletedProduct = await Product.findByIdAndDelete(req.params.id);
-    if (!deletedProduct) {
+    const products = await readProducts();
+    const nextProducts = products.filter((item) => item._id !== req.params.id && item.id !== req.params.id);
+    if (nextProducts.length === products.length) {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
+    await writeProducts(nextProducts);
     return res.json({ success: true, message: "Product deleted successfully" });
   } catch (error) {
     console.error("Delete product failed:", error);
-    const status = error.name === "CastError" ? 404 : error.statusCode || 500;
-    const message = error.name === "CastError" ? "Product not found" : error.message || "Unable to delete product";
-    return res.status(status).json({ success: false, message });
+    return res.status(error.statusCode || 500).json({ success: false, message: error.message || "Unable to delete product" });
   }
 }
 

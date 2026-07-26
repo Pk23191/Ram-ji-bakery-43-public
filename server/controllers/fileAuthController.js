@@ -31,6 +31,20 @@ function issueCustomerToken(customer) {
   );
 }
 
+function buildAppUrl(pathname = "") {
+  const base = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "http://localhost:3000";
+  return `${base.replace(/\/$/, "")}${pathname}`;
+}
+
+function createEmailVerificationFields() {
+  const token = crypto.randomBytes(32).toString("hex");
+  return {
+    emailVerificationToken: token,
+    emailVerificationExpires: Date.now() + 24 * 60 * 60 * 1000,
+    verificationLink: buildAppUrl(`/verify-email?token=${encodeURIComponent(token)}`)
+  };
+}
+
 async function signup(req, res) {
   try {
     const name = String(req.body.name || "").trim();
@@ -52,6 +66,7 @@ async function signup(req, res) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const verification = createEmailVerificationFields();
     const user = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name,
@@ -59,6 +74,8 @@ async function signup(req, res) {
       password: passwordHash,
       role: "customer",
       emailVerified: false,
+      emailVerificationToken: verification.emailVerificationToken,
+      emailVerificationExpires: verification.emailVerificationExpires,
       createdAt: new Date().toISOString()
     };
 
@@ -68,7 +85,8 @@ async function signup(req, res) {
     return res.status(201).json({
       message: "Signup successful",
       token: issueToken(user),
-      user: { id: user.id, name: user.name, email: user.email, role: user.role }
+      verificationLink: verification.verificationLink,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role, emailVerified: false }
     });
   } catch (error) {
     console.error("Signup failed:", error);

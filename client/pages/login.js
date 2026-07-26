@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import Seo from "../components/Seo";
@@ -72,12 +73,12 @@ export default function LoginPage() {
           </form>
 
           <div className="flex flex-col gap-2 text-center text-sm text-mocha/70">
-            <a href="/forgot-password" className="underline underline-offset-4">
+            <Link href="/forgot-password" className="underline underline-offset-4">
               Forgot password?
-            </a>
-            <a href="/register" className="underline underline-offset-4">
+            </Link>
+            <Link href="/register" className="underline underline-offset-4">
               Create an account
-            </a>
+            </Link>
           </div>
         </div>
       </section>

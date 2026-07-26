@@ -25,6 +25,7 @@ const fileCouponRoutes = require("./fileCouponRoutes");
 const { getCloudinaryConfigError } = require("../config/cloudinary");
 const uploadRoutes = require("./upload");
 const uploadLegacyRoutes = require("./uploadRoutes");
+const { bootstrapFileData } = require("../utils/bootstrapFileData");
 const bannerRoutes = require("./bannerRoutes");
 const imageRoutes = require("./imageRoutes");
 const { readJson, writeJson } = require("../utils/fileStore");
@@ -242,12 +243,17 @@ async function startServer() {
     }
   }
 
+  await bootstrapFileData();
   await ensureDefaultAdmin();
 
-  try {
-    await connectDB();
-  } catch (error) {
-    console.error("MongoDB connection failed. Image persistence will be unavailable until this is fixed.");
+  if (process.env.USE_MONGO === "true") {
+    try {
+      await connectDB();
+    } catch (error) {
+      console.error("MongoDB connection failed. Continuing with the file-backed API.");
+    }
+  } else {
+    console.log("Using file-backed API storage (set USE_MONGO=true to enable MongoDB).");
   }
 
   const cloudinaryError = getCloudinaryConfigError();
@@ -258,13 +264,10 @@ async function startServer() {
   }
 
   // --- Setup Env Validations ---
-  const requiredEnv = [
-    "MONGO_URI",
-    "JWT_SECRET",
-    "CLOUDINARY_CLOUD_NAME",
-    "CLOUDINARY_API_KEY",
-    "CLOUDINARY_API_SECRET"
-  ];
+  const requiredEnv = ["JWT_SECRET", "CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"];
+  if (process.env.USE_MONGO === "true") {
+    requiredEnv.unshift("MONGO_URI");
+  }
 
   requiredEnv.forEach((key) => {
     if (!process.env[key]) {
