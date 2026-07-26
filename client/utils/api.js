@@ -2,10 +2,11 @@ import axios from "axios";
 
 // Determine API base URL based on environment
 const getBaseURL = () => {
-  // On Vercel, always use the same-origin rewrite defined in vercel.json.
-  // This prevents a stale public environment variable from bypassing the live backend.
+  // In every deployed browser, use the same-origin rewrite defined in vercel.json.
+  // This prevents stale public environment variables from bypassing the live backend.
   if (typeof window !== "undefined") {
-    if (window.location.hostname.includes("vercel.app")) {
+    const hostname = window.location.hostname;
+    if (hostname !== "localhost" && hostname !== "127.0.0.1") {
       return "/api";
     }
   }
