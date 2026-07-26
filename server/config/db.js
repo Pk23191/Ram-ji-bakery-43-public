@@ -15,7 +15,7 @@ mongoose.set("bufferCommands", false);
 mongoose.set("bufferTimeoutMS", 8000);
 
 async function connectDB() {
-  const uri = process.env.MONGO_URI || process.env.MONGODB_URI || DEFAULT_URI;
+  const uri = process.env.ATLAS_MONGO_URI || process.env.MONGO_URI || process.env.MONGODB_URI || DEFAULT_URI;
   const fallbackUri = process.env.MONGODB_URI_FALLBACK || "";
 
   if (!uri || (process.env.MONGODB_URI && !isValidMongoUri(uri))) {
