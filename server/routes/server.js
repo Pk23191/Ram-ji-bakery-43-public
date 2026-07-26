@@ -107,6 +107,11 @@ app.use(
   express.static(path.join(process.cwd(), "uploads"))
 );
 
+// Render probes the service root. Keep it healthy instead of logging a 404.
+app.get("/", (req, res) => {
+  res.json({ ok: true, service: "Ramji Bakery API", health: "/api/health" });
+});
+
 // API route registration.
 app.use("/api/contact", contactRoutes);
 app.use("/api/products", productRoutes);
@@ -151,7 +156,7 @@ app.use((req, res) => {
   }
 
   // For browser navigation requests, redirect to the frontend store URL so Next.js can handle client routing.
-  const frontendUrl = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery.vercel.app";
+  const frontendUrl = process.env.PUBLIC_STORE_URL || process.env.FRONTEND_URL || "https://ram-ji-bakery23.vercel.app";
 
   if (req.accepts("html")) {
     const isLocal = req.hostname === "localhost" || req.hostname === "127.0.0.1";

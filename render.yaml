@@ -14,3 +14,5 @@ services:
         value: production
       - key: USE_MONGO
         value: "false"
+      - key: JWT_SECRET
+        generateValue: true
