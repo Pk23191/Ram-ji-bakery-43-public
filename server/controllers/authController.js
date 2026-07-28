@@ -19,6 +19,14 @@ function getSuperAdminConfig() {
   };
 }
 
+function getEnvironmentAdminConfig() {
+  return {
+    email: normalizeEmail(process.env.ADMIN_EMAIL || ""),
+    passwordPlain: String(process.env.ADMIN_PASSWORD || "").trim(),
+    role: ["admin", "superadmin"].includes(process.env.ADMIN_ROLE) ? process.env.ADMIN_ROLE : "superadmin"
+  };
+}
+
 async function superLogin(req, res) {
   try {
     const email = normalizeEmail(req.body.email);
@@ -81,7 +89,25 @@ function buildAppUrl(path = "") {
 
 async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const password = String(req.body.password || "");
+    const environmentAdmin = getEnvironmentAdminConfig();
+
+    // Keep the owner account available when the optional MongoDB connection is unavailable.
+    if (
+      environmentAdmin.email &&
+      environmentAdmin.passwordPlain &&
+      email === environmentAdmin.email &&
+      password === environmentAdmin.passwordPlain
+    ) {
+      const token = jwt.sign(
+        { id: "environment-admin", email: environmentAdmin.email, role: environmentAdmin.role },
+        process.env.JWT_SECRET || "ramji-bakery-dev-secret",
+        { expiresIn: "1d" }
+      );
+      return res.json({ token, admin: { email: environmentAdmin.email, role: environmentAdmin.role } });
+    }
+
     if (mongoose.connection.readyState !== 1) {
       console.warn("Database connection state during admin login:", mongoose.connection.readyState);
     }
