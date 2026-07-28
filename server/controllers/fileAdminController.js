@@ -25,6 +25,14 @@ function getSuperAdminConfig() {
   };
 }
 
+function getEnvironmentAdminConfig() {
+  return {
+    email: normalizeEmail(process.env.ADMIN_EMAIL || ""),
+    passwordPlain: String(process.env.ADMIN_PASSWORD || "").trim(),
+    role: ["admin", "superadmin"].includes(process.env.ADMIN_ROLE) ? process.env.ADMIN_ROLE : "superadmin"
+  };
+}
+
 async function superLogin(req, res) {
   try {
     const email = normalizeEmail(req.body.email);
@@ -81,12 +89,28 @@ async function login(req, res) {
 
     const admins = await readJson(ADMINS_FILE, []);
     const admin = admins.find((item) => item.email === email);
-    if (!admin) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
+    const match = admin ? await bcrypt.compare(password, admin.password) : false;
 
-    const match = await bcrypt.compare(password, admin.password);
-    if (!match) {
+    if (!admin || !match) {
+      const environmentAdmin = getEnvironmentAdminConfig();
+      if (
+        environmentAdmin.email &&
+        environmentAdmin.passwordPlain &&
+        email === environmentAdmin.email &&
+        password === environmentAdmin.passwordPlain
+      ) {
+        const configuredAdmin = {
+          id: "environment-admin",
+          email: environmentAdmin.email,
+          role: environmentAdmin.role
+        };
+
+        return res.json({
+          token: issueAdminToken(configuredAdmin),
+          admin: configuredAdmin
+        });
+      }
+
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
