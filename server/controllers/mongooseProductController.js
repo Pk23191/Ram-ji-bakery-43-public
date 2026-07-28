@@ -17,6 +17,26 @@ function parseMultiValue(value) {
   return [];
 }
 
+function parseColors(value) {
+  return parseMultiValue(value)
+    .map((color) => ({
+      name: String(color?.name || "").trim(),
+      image: String(color?.image || "").trim()
+    }))
+    .filter((color) => color.name && color.image);
+}
+
+function buildProductData(body, images) {
+  const { colors, imageUrls, existingImages, ...productFields } = body;
+
+  return {
+    ...productFields,
+    colors: parseColors(colors),
+    image: images[0],
+    images
+  };
+}
+
 function isDbConnected() {
   return mongoose.connection.readyState === 1;
 }
@@ -104,11 +124,7 @@ async function createProduct(req, res) {
       return res.status(400).json({ message: "Please provide at least one image" });
     }
 
-    const product = await Product.create({
-      ...req.body,
-      image: images[0],
-      images: images
-    });
+    const product = await Product.create(buildProductData(req.body, images));
 
     res.status(201).json(product);
   } catch (error) {
@@ -137,7 +153,7 @@ async function updateProduct(req, res) {
 
     const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, image: images[0], images },
+      buildProductData(req.body, images),
       { new: true }
     );
 
