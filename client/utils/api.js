@@ -2,9 +2,13 @@ import axios from "axios";
 
 // Determine API base URL based on environment
 const getBaseURL = () => {
-  // Prefer explicit environment variable when provided (works for Vercel -> Render setup)
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
+  // In every deployed browser, use the same-origin rewrite defined in vercel.json.
+  // This prevents stale public environment variables from bypassing the live backend.
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+      return "/api";
+    }
   }
 
   // Fallback for local development

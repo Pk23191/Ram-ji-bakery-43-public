@@ -7,7 +7,7 @@
 
 ## Connect GitHub
 1. Click "Connect Repository"
-2. Select: `Pk23191/Ram-ji-bakery23`
+2. Select: `Pk23191/Ram-ji-bakery-43-public`
 3. Click "Connect"
 
 ## Configure Web Service
@@ -15,8 +15,8 @@
 **Basic Settings:**
 - Name: `ramji-bakery-api`
 - Environment: `Node`
-- Build Command: `npm install && npm --prefix server install`
-- Start Command: `node server/server.js`
+- Build Command: `npm --prefix server ci`
+- Start Command: `npm --prefix server start`
 - Instance Type: Free (or Paid if you want)
 
 ## Add Environment Variables
@@ -24,13 +24,13 @@
 Click "Environment" tab and add these:
 
 ```
-MONGO_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster.mongodb.net/ramji-bakery?retryWrites=true&w=majority
+NODE_ENV=production
+USE_MONGO=false
+JWT_SECRET=<generate-a-long-random-secret-in-Render>
 
-CLOUDINARY_CLOUD_NAME=dxjhtsb2s
-CLOUDINARY_API_KEY=956249967932616
-CLOUDINARY_API_SECRET=gZx0FQ2vHts9c1UxkMYFuHUEHmc
-
-JWT_SECRET=ramji-bakery-secure-secret-2024
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 
 FRONTEND_URL=https://ram-ji-bakery23.vercel.app
 
@@ -42,7 +42,7 @@ ADMIN_ROLE=superadmin
 PORT=10000
 ```
 
-**Note:** Replace `YOUR_USERNAME` and `YOUR_PASSWORD` with your MongoDB credentials
+**Note:** MongoDB is optional. Only add `MONGO_URI` when `USE_MONGO=true` and use a hosted MongoDB URI, never `localhost`.
 
 ## Deploy
 
@@ -55,7 +55,7 @@ PORT=10000
 1. Go to https://vercel.com/dashboard
 2. Select your project
 3. Go to Settings → Environment Variables
-4. Add: `NEXT_PUBLIC_API_URL=https://ramji-bakery-api.onrender.com/api`
+4. Add: `NEXT_PUBLIC_API_URL=https://ram-ji-bakery23.onrender.com/api`
 5. Redeploy (Settings → Deployments → Redeploy)
 
 ## Test Backend

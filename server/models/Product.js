@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const PRODUCT_CATEGORIES = ["cake", "pastry", "party"];
+const PRODUCT_CATEGORIES = ["cake", "pastry", "party", "balloons", "ribbons", "candles", "hats", "banners"];
 
 const productColorSchema = new mongoose.Schema(
   {
@@ -23,6 +23,7 @@ const productSchema = new mongoose.Schema(
     price: { type: Number },
     cost: { type: Number }, // Internal alias for price
     image: { type: String, required: true },
+    discountPercent: { type: Number, default: 0, min: 0, max: 90 },
     images: {
       type: [{ type: String, trim: true }],
       default: []

@@ -1,5 +1,3 @@
-const dns = require("dns");
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
 const path = require("path");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 require("express-async-errors");
@@ -26,6 +24,7 @@ const couponRoutes = require("./settingsRoutes");
 const { getCloudinaryConfigError } = require("../config/cloudinary");
 const uploadRoutes = require("./upload");
 const uploadLegacyRoutes = require("./uploadRoutes");
+const { bootstrapFileData } = require("../utils/bootstrapFileData");
 const bannerRoutes = require("./bannerRoutes");
 const imageRoutes = require("./imageRoutes");
 
@@ -111,6 +110,11 @@ app.use(
   "/uploads",
   express.static(path.join(process.cwd(), "uploads"))
 );
+
+// Render probes the service root. Keep it healthy instead of logging a 404.
+app.get("/", (req, res) => {
+  res.json({ ok: true, service: "Ramji Bakery API", health: "/api/health" });
+});
 
 // API route registration.
 app.use("/api/contact", contactRoutes);
@@ -325,3 +329,4 @@ process.on("unhandledRejection", (reason) => {
 
 registerShutdownHandlers();
 startServer();
+
